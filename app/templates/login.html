@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<section class="card mx-auto mt-10 max-w-md">
+  <h1 class="text-xl font-semibold">Welcome back</h1>
+  <p class="mt-1 text-sm text-slate-500">Log in to see your group's board.</p>
+  <form method="post" class="mt-4 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="lbl">Matric number<input class="field" name="matric_no" required autofocus></label>
+    <label class="lbl">Password<input class="field" type="password" name="password" required></label>
+    <button class="btn btn-primary w-full">Log in</button>
+  </form>
+  <p class="mt-4 text-sm text-slate-500">No account? <a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.register') }}">Register</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section class="card mx-auto mt-6 max-w-md">
+  <h1 class="text-xl font-semibold">Create your account</h1>
+  <form method="post" class="mt-4 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="lbl">Full name<input class="field" name="name" value="{{ form.get('name','') }}" required></label>
+    <label class="lbl">Matric number<input class="field" name="matric_no" value="{{ form.get('matric_no','') }}" required></label>
+    <label class="lbl">Email<input class="field" type="email" name="email" value="{{ form.get('email','') }}" required></label>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="lbl">Password<input class="field" type="password" name="password" minlength="8" required></label>
+      <label class="lbl">Confirm<input class="field" type="password" name="confirm" required></label>
+    </div>
+    <p class="text-xs text-slate-500">Use at least 8 characters.</p>
+    <button class="btn btn-primary w-full">Register</button>
+  </form>
+  <p class="mt-4 text-sm text-slate-500">Already registered? <a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.login') }}">Log in</a></p>
+</section>
+{% endblock %}

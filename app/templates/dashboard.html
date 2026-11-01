@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}My groups{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">My groups</h1>
+<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for m in memberships %}
+  {% set g = m.group %}
+  {% set late = g.tasks|selectattr('is_overdue')|list|length %}
+  <a href="{{ url_for('groups.board', group_id=g.id) }}" class="card block transition hover:border-brand-500 hover:shadow-md">
+    <div class="flex items-start justify-between gap-2">
+      <h2 class="font-semibold">{{ g.name }}</h2>
+      <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-700 dark:text-brand-50">{{ m.role|capitalize }}</span>
+    </div>
+    <p class="mt-1 text-sm text-slate-500">{{ g.tasks|length }} tasks · {{ g.memberships|length }} members</p>
+    <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"><div class="h-full bg-brand-600" style="width: {{ g.progress }}%"></div></div>
+    <div class="mt-2 flex justify-between text-xs text-slate-500">
+      <span>{{ g.progress }}% complete</span>
+      {% if late %}<span class="font-medium text-red-600 dark:text-red-400">{{ late }} overdue</span>{% endif %}
+    </div>
+  </a>
+  {% else %}
+  <div class="card col-span-full border-dashed text-center text-slate-500">
+    You are not in a group yet. Create one or join with a code below.
+  </div>
+  {% endfor %}
+</div>
+<div class="mt-6 grid gap-4 md:grid-cols-2">
+  <form class="card space-y-3" method="post" action="{{ url_for('groups.create') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="font-semibold">Create a group</h2>
+    <label class="lbl">Group name<input class="field" name="name" maxlength="100" required></label>
+    <button class="btn btn-primary">Create group</button>
+  </form>
+  <form class="card space-y-3" method="post" action="{{ url_for('groups.join') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="font-semibold">Join a group</h2>
+    <label class="lbl">Join code<input class="field uppercase" name="code" maxlength="12" required></label>
+    <button class="btn btn-primary">Join group</button>
+  </form>
+</div>
+{% endblock %}

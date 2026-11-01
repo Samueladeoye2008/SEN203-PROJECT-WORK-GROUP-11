@@ -1,0 +1,76 @@
+from datetime import date
+
+from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from ..extensions import db
+from ..models import (ActivityLog, Group, Membership, ROLE_LEADER, ROLE_MEMBER,
+                      STATUSES, Task)
+from ..utils import log_activity, membership_or_403
+
+bp = Blueprint("groups", __name__)
+
+
+@bp.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html", memberships=current_user.memberships)
+
+
+@bp.route("/groups/create", methods=["POST"])
+@login_required
+def create():
+    name = request.form.get("name", "").strip()
+    if not name or len(name) > 100:
+        flash("Enter a group name (max 100 characters).", "error")
+        return redirect(url_for("groups.dashboard"))
+    group = Group(name=name, join_code=Group.new_code(), created_by=current_user.id)
+    db.session.add(group)
+    db.session.flush()
+    db.session.add(Membership(user_id=current_user.id, group_id=group.id,
+                              role=ROLE_LEADER))
+    log_activity(group.id, "group_created", name)
+    db.session.commit()
+    return redirect(url_for("groups.board", group_id=group.id))
+
+
+@bp.route("/groups/join", methods=["POST"])
+@login_required
+def join():
+    code = request.form.get("code", "").strip().upper()
+    group = Group.query.filter_by(join_code=code).first()
+    if not group:
+        flash("No group found with that code.", "error")
+        return redirect(url_for("groups.dashboard"))
+    if Membership.query.filter_by(user_id=current_user.id, group_id=group.id).first():
+        flash("You are already in that group.", "error")
+        return redirect(url_for("groups.board", group_id=group.id))
+    db.session.add(Membership(user_id=current_user.id, group_id=group.id,
+                              role=ROLE_MEMBER))
+    log_activity(group.id, "member_joined", current_user.name)
+    db.session.commit()
+    return redirect(url_for("groups.board", group_id=group.id))
+
+
+@bp.route("/groups/<int:group_id>")
+@login_required
+def board(group_id):
+    me = membership_or_403(group_id)
+    group = db.get_or_404(Group, group_id)
+    far = date.max
+    tasks = sorted(group.tasks, key=lambda t: (t.deadline or far, t.id))
+    columns = [(key, label, [t for t in tasks if t.status == key])
+               for key, label in STATUSES]
+    return render_template("board.html", group=group, me=me, columns=columns,
+                           members=group.memberships, statuses=STATUSES,
+                           today=date.today())
+
+
+@bp.route("/groups/<int:group_id>/activity")
+@login_required
+def activity(group_id):
+    membership_or_403(group_id)
+    group = db.get_or_404(Group, group_id)
+    logs = (ActivityLog.query.filter_by(group_id=group_id)
+            .order_by(ActivityLog.id.desc()).limit(100).all())
+    return render_template("activity.html", group=group, logs=logs)

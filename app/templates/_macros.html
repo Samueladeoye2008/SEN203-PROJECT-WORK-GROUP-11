@@ -1,0 +1,7 @@
+{% macro avatar(user, size='h-7 w-7 text-xs') %}
+<span class="inline-flex {{ size }} shrink-0 items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-700 dark:bg-brand-700 dark:text-brand-50" title="{{ user.name }}">{{ (user.name.split()|map('first')|join)[:2]|upper }}</span>
+{% endmacro %}
+{% macro prio(p) %}
+{% set c = {'high':'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300','medium':'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300','low':'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'} %}
+<span class="rounded-full px-2 py-0.5 text-xs font-medium {{ c[p] }}">{{ p|capitalize }}</span>
+{% endmacro %}

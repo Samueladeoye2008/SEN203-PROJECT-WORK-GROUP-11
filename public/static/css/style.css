@@ -1,0 +1,3 @@
+/* Layout and styling come from Tailwind (see base.html). Only drag-and-drop states live here. */
+.task.dragging { opacity: .4; }
+.col.over { outline: 2px dashed #1f6f5b; outline-offset: 2px; }
