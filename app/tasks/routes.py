@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 
 from ..extensions import db
 from ..models import Membership, PRIORITIES, STATUS_KEYS, Task
+from ..notifications import notify_assigned, notify_review
 from ..utils import log_activity, membership_or_403, parse_date
 
 bp = Blueprint("tasks", __name__)
@@ -57,11 +58,15 @@ def create(group_id):
         for e in errors:
             flash(e, "error")
     else:
-        task = Task(group_id=group_id, created_by=current_user.id, **vals)
+        status = request.form.get("status", "todo")
+        if status not in STATUS_KEYS:
+            status = "todo"
+        task = Task(group_id=group_id, created_by=current_user.id, status=status, **vals)
         db.session.add(task)
         db.session.flush()
         log_activity(group_id, "task_created", task.title, task.id)
         db.session.commit()
+        notify_assigned(task)
     return redirect(url_for("groups.board", group_id=group_id))
 
 
@@ -77,6 +82,7 @@ def edit(task_id):
         vals, errors = _validated(request.form, task.group_id, me)
         if not me.is_leader:           # only leader may reassign
             vals["assigned_to"] = task.assigned_to
+        old_assignee = task.assigned_to
         status = request.form.get("status", task.status)
         if status not in STATUS_KEYS:
             errors.append("Invalid status.")
@@ -89,6 +95,8 @@ def edit(task_id):
             task.status = status
             log_activity(task.group_id, "task_edited", task.title, task.id)
             db.session.commit()
+            if task.assigned_to != old_assignee:
+                notify_assigned(task)
             return redirect(url_for("groups.board", group_id=task.group_id))
     return render_template("task_edit.html", task=task, me=me,
                            members=task.group.memberships)
@@ -108,6 +116,8 @@ def move(task_id):
         old, task.status = task.status, status
         log_activity(task.group_id, "task_moved", f"{task.title}: {old} -> {status}", task.id)
         db.session.commit()
+        if status == "review":
+            notify_review(task)
     return jsonify(ok=True, status=task.status)
 
 

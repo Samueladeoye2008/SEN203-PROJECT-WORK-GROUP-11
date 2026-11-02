@@ -151,3 +151,96 @@ def test_pages_render_with_data(client):
     assert board.status_code == 200 and b"Render me" in board.data and b"Overdue" in board.data
     assert client.get("/dashboard").status_code == 200
     assert client.get("/tasks/1/edit").status_code == 200
+
+
+# ---------- email ----------
+import json as _json
+import app.mailer as mailer_mod
+import app.notifications as notif_mod
+
+
+@pytest.fixture
+def mail_client():
+    class MailConfig(TestConfig):
+        APPS_SCRIPT_URL = "https://script.google.com/macros/s/x/exec"
+        APPS_SCRIPT_SECRET = "s3cret"
+        CRON_SECRET = "cron-s"
+    app = create_app(MailConfig)
+    with app.app_context():
+        yield app.test_client()
+        db.session.remove()
+        db.drop_all()
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    calls = []
+    monkeypatch.setattr(notif_mod, "send_email",
+                        lambda app, to, subject, body: calls.append((to, subject)) or True)
+    return calls
+
+
+def test_send_email_disabled_without_config(client):
+    from flask import current_app
+    assert mailer_mod.send_email(current_app, "a@b.com", "s", "b") is False
+
+
+def test_send_email_posts_secret_to_google_only(mail_client, monkeypatch):
+    from flask import current_app
+    seen = {}
+
+    class Resp:
+        def read(self): return b'{"ok": true}'
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    def fake(req, timeout=0):
+        seen["body"] = _json.loads(req.data)
+        return Resp()
+    monkeypatch.setattr(mailer_mod.urllib.request, "urlopen", fake)
+    assert mailer_mod.send_email(current_app, "a@b.com", "Hi", "Body") is True
+    assert seen["body"]["secret"] == "s3cret" and seen["body"]["to"] == "a@b.com"
+    current_app.config["APPS_SCRIPT_URL"] = "https://evil.example.com/x"
+    assert mailer_mod.send_email(current_app, "a@b.com", "Hi", "Body") is False
+
+
+def test_assignment_emails_assignee_not_self(mail_client, sent):
+    setup_group(mail_client)
+    logout(mail_client)
+    login(mail_client, "A1")
+    mail_client.post("/groups/1/tasks", data=dict(title="T", priority="low", assigned_to="2"))
+    assert sent == [("b1@x.com", "New task: T")]
+    mail_client.post("/groups/1/tasks", data=dict(title="Mine", priority="low", assigned_to="1"))
+    assert len(sent) == 1
+
+
+def test_review_notifies_leader(mail_client, sent):
+    setup_group(mail_client)
+    logout(mail_client)
+    login(mail_client, "A1")
+    mail_client.post("/groups/1/tasks", data=dict(title="T", priority="low", assigned_to="2"))
+    sent.clear()
+    logout(mail_client)
+    login(mail_client, "B1")
+    mail_client.post("/tasks/1/move", json={"status": "review"})
+    assert sent == [("a1@x.com", "Ready for review: T")]
+
+
+def test_quick_add_sets_status(mail_client):
+    setup_group(mail_client)
+    logout(mail_client)
+    login(mail_client, "A1")
+    mail_client.post("/groups/1/tasks", data=dict(title="T", priority="low", status="doing"))
+    assert Task.query.first().status == "doing"
+
+
+def test_cron_requires_secret_and_sends_digest(mail_client, sent):
+    setup_group(mail_client)
+    logout(mail_client)
+    login(mail_client, "A1")
+    mail_client.post("/groups/1/tasks", data=dict(title="Late", priority="low",
+                     deadline="2020-01-01", assigned_to="2"))
+    sent.clear()
+    assert mail_client.get("/cron/reminders").status_code == 403
+    r = mail_client.get("/cron/reminders", headers={"Authorization": "Bearer cron-s"})
+    assert r.get_json() == {"sent": 1} and sent[0][0] == "b1@x.com"

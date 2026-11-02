@@ -157,6 +157,30 @@ flowchart LR
     X["Non-member"] --> A5["403 Forbidden"]
 ```
 
+## Email notifications (optional, free)
+
+```mermaid
+flowchart LR
+    A["Task assigned or sent for review"] --> F["Flask mailer.py"]
+    C["Vercel Cron daily 07:00 UTC"] -->|"Bearer CRON_SECRET"| R["/cron/reminders"]
+    R --> F
+    F -->|"HTTPS POST + shared secret"| G["Google Apps Script web app"]
+    G -->|"MailApp.sendEmail"| E["Student or leader inbox"]
+```
+
+Setup: paste `docs/apps-script/Code.gs` into a new project at script.google.com, add the script property `SHARED_SECRET`, deploy as a Web app (Execute as: Me, Access: Anyone), then put the `/exec` URL and the same secret in your environment variables. Email is skipped when they are empty.
+
+## Environment variables and secrets
+Never commit keys. Locally copy `.env.example` to `.env` (git-ignored). On Vercel use Project Settings, Environment Variables.
+
+| Name | Purpose |
+|---|---|
+| `SECRET_KEY` | Signs login sessions |
+| `DATABASE_URL` | Neon connection string (empty locally = SQLite) |
+| `APPS_SCRIPT_URL` | Apps Script Web app URL |
+| `APPS_SCRIPT_SECRET` | Must equal the script's `SHARED_SECRET` |
+| `CRON_SECRET` | Protects `/cron/reminders` |
+
 ## Run locally (Windows, Command Prompt, inside this folder)
 ```
 python -m venv venv

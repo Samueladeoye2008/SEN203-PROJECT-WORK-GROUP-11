@@ -1,4 +1,4 @@
-// Kanban interaction: drag-and-drop and arrow buttons call POST /tasks/<id>/move.
+// Kanban interaction: drag-and-drop, arrow buttons and the done circle call POST /tasks/<id>/move.
 (function () {
   var STATUSES = ["todo", "doing", "review", "done"];
   var token = document.querySelector('meta[name="csrf-token"]').content;
@@ -30,50 +30,25 @@
   });
   document.addEventListener("dragleave", function (e) {
     var c = e.target.closest && e.target.closest(".col");
-    if (c) { c.classList.remove("over"); }
+    if (c && !c.contains(e.relatedTarget)) { c.classList.remove("over"); }
   });
   document.addEventListener("drop", function (e) {
     var c = e.target.closest && e.target.closest(".col");
     if (c && dragId) { e.preventDefault(); move(dragId, c.dataset.status); }
   });
+
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-move]");
-    if (!b) { return; }
-    var card = b.closest(".task"), col = b.closest(".col");
-    var i = STATUSES.indexOf(col.dataset.status) + parseInt(b.dataset.move, 10);
-    if (i >= 0 && i < STATUSES.length) { move(card.dataset.id, STATUSES[i]); }
-  });
-
-  // Add-task panel toggle.
-  var addBtn = document.getElementById("add-toggle"), addForm = document.getElementById("add-form");
-  if (addBtn && addForm) {
-    addBtn.addEventListener("click", function () {
-      addForm.classList.toggle("hidden");
-      var f = addForm.querySelector("input[name=title]"); if (f) { f.focus(); }
-    });
-  }
-
-  // "Show only my tasks" filter (client side).
-  var mine = document.getElementById("mine-toggle");
-  if (mine) {
-    mine.addEventListener("click", function () {
-      var on = mine.getAttribute("aria-pressed") !== "true";
-      mine.setAttribute("aria-pressed", on);
-      mine.textContent = on ? "Show all tasks" : "Show only my tasks";
-      document.querySelectorAll(".task").forEach(function (t) {
-        t.classList.toggle("hidden", on && t.dataset.assignee !== mine.dataset.me);
-      });
-    });
-  }
-
-  // Copy join code.
-  document.querySelectorAll("[data-copy]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(b.dataset.copy).then(function () {
-          b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500);
-        });
-      }
-    });
+    var card = e.target.closest && e.target.closest(".task");
+    if (!card) { return; }
+    var col = card.closest(".col");
+    var b = e.target.closest("[data-move]");
+    if (b) {
+      var i = STATUSES.indexOf(col.dataset.status) + parseInt(b.dataset.move, 10);
+      if (i >= 0 && i < STATUSES.length) { move(card.dataset.id, STATUSES[i]); }
+      return;
+    }
+    if (e.target.closest("[data-toggle-done]")) {
+      move(card.dataset.id, col.dataset.status === "done" ? "todo" : "done");
+    }
   });
 })();

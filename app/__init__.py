@@ -23,6 +23,8 @@ def create_app(config=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(groups_bp)
     app.register_blueprint(tasks_bp)
+    from .cron import bp as cron_bp
+    app.register_blueprint(cron_bp)
 
     @app.route("/")
     def index():
