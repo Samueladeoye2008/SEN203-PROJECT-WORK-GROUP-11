@@ -5,39 +5,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>{% block title %}Task Board{% endblock %} | CSC Group 11</title>
-<script>(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();</script>
-<!-- Tailwind Play CDN: fine for a class project. For heavy production use, compile with the Tailwind CLI. -->
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script>
-tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: {
-  50:'#e8f0fe',100:'#d2e3fc',500:'#4285f4',600:'#1a73e8',700:'#1557b0' } } } } };
-</script>
-<style type="text/tailwindcss">
-@layer components {
-  .field { @apply mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 dark:border-neutral-700 dark:bg-[#1e1e1e] dark:text-neutral-100; }
-  .lbl { @apply block text-sm font-medium text-neutral-700 dark:text-neutral-300; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-neutral-700 dark:bg-[#1e1e1e] dark:text-neutral-200 dark:hover:bg-neutral-800; }
-  .btn-primary { @apply border-transparent bg-brand-600 text-white hover:bg-brand-700 dark:border-transparent dark:bg-[#8ab4f8] dark:text-[#062e6f] dark:hover:bg-[#a8c7fa]; }
-  .btn-sm { @apply px-3 py-1 text-xs; }
-  .card { @apply rounded-3xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-[#1e1e1e]; }
-  .rail { @apply flex h-11 w-11 items-center justify-center rounded-2xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white; }
-  .rail-on { @apply bg-brand-100 text-brand-700 dark:bg-[#172554] dark:text-brand-100; }
-}
-</style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<title>{% block title %}{{ app_name }}{% endblock %} | {{ app_name }}</title>
+{% include "_head.html" %}
 </head>
 <body class="min-h-screen bg-white text-neutral-900 antialiased dark:bg-black dark:text-neutral-100">
 {% set ep = request.endpoint or '' %}
 {% if current_user.is_authenticated %}
 <aside class="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col items-center gap-1 py-3 md:flex">
-  <a href="{{ url_for('groups.dashboard') }}" class="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white" aria-label="Home" title="Home">
-    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/></svg>
-  </a>
+  <a href="{{ url_for('groups.dashboard') }}" class="mb-3 block h-10 w-10" aria-label="Home" title="Home"><img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" class="h-10 w-10"></a>
   <a href="{{ url_for('groups.dashboard') }}" class="rail {{ 'rail-on' if ep == 'groups.dashboard' }}" aria-label="My boards" title="My boards">{{ icon('grid') }}</a>
   <a href="{{ url_for('groups.dashboard') }}#new" data-toggle="#new-group" class="rail" aria-label="New board" title="New board">{{ icon('plus') }}</a>
   {% if group is defined and group %}
   <a href="{{ url_for('groups.activity', group_id=group.id) }}" class="rail {{ 'rail-on' if ep == 'groups.activity' }}" aria-label="Activity log" title="Activity log">{{ icon('clock') }}</a>
+  {% endif %}
+  {% if current_user.is_superadmin %}
+  <a href="{{ url_for('admin.dashboard') }}" class="rail {{ 'rail-on' if ep.startswith('admin.') }}" aria-label="Admin" title="Admin">{{ icon('shield') }}</a>
   {% endif %}
   <div class="flex-1"></div>
   <button type="button" id="theme-toggle" class="rail" aria-label="Toggle dark mode" title="Light / dark">{{ icon('moon') }}</button>
@@ -49,6 +31,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: {
 <nav class="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-neutral-200 bg-white/95 py-1 backdrop-blur dark:border-neutral-800 dark:bg-black/95 md:hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
   <a href="{{ url_for('groups.dashboard') }}" class="rail" aria-label="My boards">{{ icon('grid') }}</a>
   {% if group is defined and group %}<a href="{{ url_for('groups.activity', group_id=group.id) }}" class="rail" aria-label="Activity log">{{ icon('clock') }}</a>{% endif %}
+  {% if current_user.is_superadmin %}<a href="{{ url_for('admin.dashboard') }}" class="rail" aria-label="Admin">{{ icon('shield') }}</a>{% endif %}
   <button type="button" id="theme-toggle-m" class="rail" aria-label="Toggle dark mode">{{ icon('moon') }}</button>
   <form method="post" action="{{ url_for('auth.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -59,13 +42,13 @@ tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: {
 
 <div class="{{ 'md:pl-16' if current_user.is_authenticated }}">
   <header class="flex items-center gap-3 px-4 py-2.5">
-    <a href="{{ url_for('groups.dashboard') }}" class="text-lg font-semibold tracking-tight">Task Board</a>
+    <a href="{{ url_for('index') }}" class="flex items-center gap-2 text-lg font-semibold tracking-tight"><img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" class="h-7 w-7 md:hidden">{{ app_name }}</a>
     {% if current_user.is_authenticated %}
     <div class="relative mx-auto w-full max-w-xl">
       <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">{{ icon('search','h-4 w-4') }}</span>
       <input id="search" type="search" placeholder="Search tasks and boards" aria-label="Search" class="w-full rounded-full border-0 bg-neutral-100 py-2.5 pl-10 pr-4 text-sm placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-brand-600/40 dark:bg-[#1e1e1e]">
     </div>
-    <span class="ml-auto" title="{{ current_user.name }}">{{ avatar(current_user, 'h-9 w-9 text-sm') }}</span>
+    <a class="ml-auto" href="{{ url_for('auth.account') }}" title="{{ current_user.name }}: account" aria-label="Account">{{ avatar(current_user, 'h-9 w-9 text-sm') }}</a>
     {% endif %}
   </header>
   <main class="min-h-[calc(100vh-3.5rem)] px-4 py-5 pb-24 md:rounded-tl-3xl md:px-6 md:pb-8 {{ 'bg-neutral-50 dark:bg-[#141414]' }}">

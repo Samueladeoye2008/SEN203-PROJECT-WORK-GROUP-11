@@ -4,10 +4,11 @@
 {% block content %}
 {% set total = group.tasks|length %}
 {% set late = group.tasks|selectattr('is_overdue')|list|length %}
-{% set can_add = me.is_leader or config.ANY_MEMBER_CAN_CREATE %}
+{% set can_add = (me.is_leader or config.ANY_MEMBER_CAN_CREATE) and not me.read_only %}
 {% set dots = {'todo':'bg-neutral-400','doing':'bg-sky-500','review':'bg-amber-500','done':'bg-emerald-500'} %}
 {% set bars = {'high':'bg-red-500','medium':'bg-amber-500','low':'bg-sky-500'} %}
 
+{% if me.read_only %}<div class="mb-3 rounded-2xl border border-brand-500/40 bg-brand-50 px-4 py-2 text-sm text-brand-700 dark:bg-[#172554] dark:text-brand-100">Read-only administrator view.</div>{% endif %}
 <div class="flex flex-wrap items-center justify-between gap-3">
   <div class="min-w-0">
     <h1 class="truncate text-2xl font-semibold">{{ group.name }}</h1>
@@ -57,10 +58,10 @@
     {% for t in tasks %}
       {% set days = (t.deadline - today).days if t.deadline else none %}
       {% set done = t.status == 'done' %}
-      <article class="task group relative cursor-grab overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-3 pl-4 dark:border-neutral-800 dark:bg-[#262626]" draggable="true" data-id="{{ t.id }}" data-assignee="{{ t.assigned_to or '' }}" data-search="{{ (t.title ~ ' ' ~ (t.description or '') ~ ' ' ~ (t.assignee.name if t.assignee else ''))|lower }}">
+      <article class="task group relative cursor-grab overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-3 pl-4 dark:border-neutral-800 dark:bg-[#262626]" draggable="{{ 'false' if me.read_only else 'true' }}" data-id="{{ t.id }}" data-assignee="{{ t.assigned_to or '' }}" data-search="{{ (t.title ~ ' ' ~ (t.description or '') ~ ' ' ~ (t.assignee.name if t.assignee else ''))|lower }}">
         <span class="absolute inset-y-0 left-0 w-1 {{ bars[t.priority] }}" title="{{ t.priority|capitalize }} priority"></span>
         <div class="flex items-start gap-2.5">
-          <button type="button" data-toggle-done aria-label="{{ 'Mark not done' if done else 'Mark done' }}" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {{ 'border-emerald-500 bg-emerald-500 text-white' if done else 'border-neutral-400 text-transparent hover:border-emerald-500 hover:text-emerald-500' }}">{{ icon('check','h-3 w-3') }}</button>
+          <button type="button" data-toggle-done {{ 'disabled' if me.read_only }} aria-label="{{ 'Mark not done' if done else 'Mark done' }}" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {{ 'border-emerald-500 bg-emerald-500 text-white' if done else 'border-neutral-400 text-transparent hover:border-emerald-500 hover:text-emerald-500' }}">{{ icon('check','h-3 w-3') }}</button>
           <div class="min-w-0 flex-1">
             <h3 class="break-words text-sm font-medium {{ 'text-neutral-400 line-through' if done }}">{{ t.title }}</h3>
             {% if t.description %}<p class="mt-0.5 break-words text-xs text-neutral-500">{{ t.description }}</p>{% endif %}
@@ -72,6 +73,7 @@
             </div>
           </div>
         </div>
+        {% if not me.read_only %}
         <div class="mt-2 flex items-center gap-1 md:opacity-0 md:transition md:group-hover:opacity-100 md:group-focus-within:opacity-100">
           <button type="button" class="rail !h-7 !w-7 !rounded-lg" data-move="-1" aria-label="Move left" title="Move left">{{ icon('left','h-4 w-4') }}</button>
           <button type="button" class="rail !h-7 !w-7 !rounded-lg" data-move="1" aria-label="Move right" title="Move right">{{ icon('right','h-4 w-4') }}</button>
@@ -83,6 +85,7 @@
           </form>
           {% endif %}
         </div>
+        {% endif %}
       </article>
     {% else %}
       <p class="px-2 py-6 text-center text-xs text-neutral-400">Nothing here yet</p>

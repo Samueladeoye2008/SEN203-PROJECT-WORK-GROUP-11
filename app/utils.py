@@ -1,5 +1,6 @@
 """Shared helpers: authorization and activity logging."""
 from datetime import datetime
+from types import SimpleNamespace
 
 from flask import abort
 from flask_login import current_user
@@ -26,3 +27,13 @@ def parse_date(value):
     """Return a date from 'YYYY-MM-DD', None if blank, ValueError if bad."""
     value = (value or "").strip()
     return datetime.strptime(value, "%Y-%m-%d").date() if value else None
+
+
+def view_membership_or_403(group_id):
+    """Members get their membership; super admins get a read-only observer view."""
+    m = Membership.query.filter_by(user_id=current_user.id, group_id=group_id).first()
+    if m:
+        return m
+    if current_user.is_superadmin:
+        return SimpleNamespace(is_leader=False, read_only=True, user_id=current_user.id)
+    abort(403)

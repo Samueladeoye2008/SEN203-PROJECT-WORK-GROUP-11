@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin: users{% endblock %}
+{% block content %}
+{% include "admin/_tabs.html" %}
+<form method="get" class="mb-4 flex max-w-md gap-2">
+  <input class="field !mt-0" name="q" value="{{ q }}" placeholder="Search name, matric or email" aria-label="Search users">
+  <button class="btn btn-primary">Search</button>
+</form>
+<div class="card overflow-x-auto !p-0">
+  <table class="w-full text-left text-sm">
+    <thead class="text-xs text-neutral-500"><tr><th class="px-4 py-2">Name</th><th class="px-4 py-2">Matric</th><th class="px-4 py-2">Email</th><th class="px-4 py-2">Groups</th><th class="px-4 py-2">Status</th><th class="px-4 py-2">Actions</th></tr></thead>
+    <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
+    {% for u in users %}
+      <tr>
+        <td class="px-4 py-2 font-medium">{{ u.name }}{% if u.is_superadmin %} <span class="rounded-full bg-brand-50 px-2 text-xs text-brand-700 dark:bg-[#172554] dark:text-brand-100">admin</span>{% endif %}</td>
+        <td class="px-4 py-2">{{ u.matric_no }}</td><td class="px-4 py-2">{{ u.email }}</td>
+        <td class="px-4 py-2">{{ u.memberships|length }}</td>
+        <td class="px-4 py-2">{{ 'Active' if u.is_active else 'Suspended' }}</td>
+        <td class="flex gap-2 px-4 py-2">
+          {% if not u.is_superadmin %}
+          <form method="post" action="{{ url_for('admin.toggle_user', uid=u.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">{{ 'Suspend' if u.is_active else 'Reactivate' }}</button></form>
+          {% endif %}
+          <form method="post" action="{{ url_for('admin.reset_password', uid=u.id) }}" onsubmit="return confirm('Generate a new temporary password?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">Temp password</button></form>
+          <form method="post" action="{{ url_for('admin.email_reset_link', uid=u.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">Email reset link</button></form>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="px-4 py-6 text-center text-neutral-400">No users found.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

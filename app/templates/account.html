@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<section class="card mx-auto max-w-md">
+  <h1 class="text-xl font-semibold">{{ current_user.name }}</h1>
+  <p class="text-sm text-neutral-500">{{ current_user.matric_no }} · {{ current_user.email }}{% if current_user.is_superadmin %} · Administrator{% endif %}</p>
+  <h2 class="mt-5 font-semibold">Change password</h2>
+  <form method="post" class="mt-3 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="lbl">Current password<input class="field" type="password" name="current" required></label>
+    <label class="lbl">New password (8+ characters)<input class="field" type="password" name="new" minlength="8" required></label>
+    <label class="lbl">Confirm new password<input class="field" type="password" name="confirm" required></label>
+    <button class="btn btn-primary">Save password</button>
+  </form>
+</section>
+{% endblock %}

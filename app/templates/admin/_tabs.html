@@ -1,0 +1,7 @@
+{% set ep = request.endpoint %}
+<div class="mb-5 flex flex-wrap items-center gap-2">
+  <h1 class="mr-3 text-2xl font-semibold">Administration</h1>
+  {% for name, label in [('admin.dashboard','Overview'),('admin.users','Users'),('admin.groups','Groups'),('admin.settings','Limits and email')] %}
+  <a href="{{ url_for(name) }}" class="btn btn-sm {{ 'btn-primary' if ep == name }}">{{ label }}</a>
+  {% endfor %}
+</div>

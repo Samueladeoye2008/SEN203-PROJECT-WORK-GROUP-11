@@ -3,7 +3,8 @@ from flask import (Blueprint, current_app, flash, jsonify, redirect,
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import Membership, PRIORITIES, STATUS_KEYS, Task
+from ..models import Group, Membership, PRIORITIES, STATUS_KEYS, Task
+from .. import limits
 from ..notifications import notify_assigned, notify_review
 from ..utils import log_activity, membership_or_403, parse_date
 
@@ -50,6 +51,13 @@ def create(group_id):
     me = membership_or_403(group_id)
     if not (me.is_leader or current_app.config["ANY_MEMBER_CAN_CREATE"]):
         flash("Only the group leader can create tasks.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    group = db.session.get(Group, group_id)
+    if limits.over(limits.get_limit("max_tasks_per_group"), len(group.tasks)):
+        flash("This group has reached its task limit.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    if limits.storage_full():
+        flash(limits.STORAGE_MSG, "error")
         return redirect(url_for("groups.board", group_id=group_id))
     vals, errors = _validated(request.form, group_id, me)
     if not me.is_leader:               # members cannot assign to others

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Admin: limits{% endblock %}
+{% block content %}
+{% include "admin/_tabs.html" %}
+<div class="grid gap-4 lg:grid-cols-2">
+  <form method="post" class="card space-y-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="font-semibold">App name</h2>
+    <label class="lbl">Shown in the header, landing page and emails (max 40 characters)<input class="field" name="app_name" maxlength="40" value="{{ name_value }}" required></label>
+    <h2 class="pt-2 font-semibold">Usage limits</h2>
+    <p class="text-xs text-neutral-500">For number fields, 0 means unlimited.</p>
+    {% for key, label, kind in fields %}
+      {% if kind == 'toggle' %}
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="{{ key }}" {{ 'checked' if values[key] }} class="h-4 w-4"> {{ label }}</label>
+      {% else %}
+      <label class="lbl">{{ label }}<input class="field" type="number" min="0" name="{{ key }}" value="{{ values[key] }}"></label>
+      {% endif %}
+    {% endfor %}
+    <button class="btn btn-primary">Save limits</button>
+  </form>
+  <div class="card space-y-3">
+    <h2 class="font-semibold">Email relay</h2>
+    <p class="text-sm text-neutral-500">Status: {{ 'configured' if not email_problem else 'not configured. ' ~ email_problem }}</p>
+    <form method="post" action="{{ url_for('admin.test_email') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Send a test email to me</button></form>
+  </div>
+</div>
+{% endblock %}

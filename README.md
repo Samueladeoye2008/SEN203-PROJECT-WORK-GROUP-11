@@ -5,6 +5,9 @@ Python Flask, SQLAlchemy, Tailwind CSS, SQLite (local) / PostgreSQL on Neon (hos
 Process model: Incremental. Full design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Features
+- Welcome email on signup, forgot-password by email (single-use link, 1 hour), admin can email a reset link
+- Admin-editable app name (default GroupFlow) and logo in header, landing page, favicon and emails
+- Landing page for visitors (what Kanban is, how it works, sign up and log in buttons)
 - Register and log in with matric number
 - Create a group, join with a code, leader and member roles
 - Kanban board (To do, In progress, In review, Done) with drag and drop and arrow buttons
@@ -175,11 +178,21 @@ Never commit keys. Locally copy `.env.example` to `.env` (git-ignored). On Verce
 
 | Name | Purpose |
 |---|---|
+| `APP_NAME` | Name shown in the app and landing page (default GroupFlow) |
 | `SECRET_KEY` | Signs login sessions |
 | `DATABASE_URL` | Neon connection string (empty locally = SQLite) |
 | `APPS_SCRIPT_URL` | Apps Script Web app URL |
 | `APPS_SCRIPT_SECRET` | Must equal the script's `SHARED_SECRET` |
 | `CRON_SECRET` | Protects `/cron/reminders` |
+
+## Super admin
+Created only from the command line, never from the website, so nobody can promote themselves: `python create_admin.py`. Log in, then open `/admin`.
+- Overview: users, groups, tasks, usage meters (users, emails today, database size), recent activity
+- Users: search, suspend or reactivate, reset a password
+- Groups: view any board read-only, delete a group
+- Limits and email: registration on/off, max users, groups per user, members per group, tasks per group, daily write requests per user, daily emails, database storage cap, and a test-email button
+
+Limits are enforced on the server. A cap of 0 means unlimited. Older databases are upgraded automatically on start.
 
 ## Run locally (Windows, Command Prompt, inside this folder)
 ```

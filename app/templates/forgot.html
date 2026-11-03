@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Forgot password{% endblock %}
+{% block content %}
+<section class="card mx-auto mt-10 max-w-md">
+  <h1 class="text-xl font-semibold">Forgot your password?</h1>
+  <p class="mt-1 text-sm text-neutral-500">Enter the email you registered with and we will send you a reset link.</p>
+  <form method="post" class="mt-4 space-y-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="lbl">Email<input class="field" type="email" name="email" required autofocus></label>
+    <button class="btn btn-primary w-full">Send reset link</button>
+  </form>
+  <p class="mt-4 text-sm text-neutral-500"><a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.login') }}">Back to log in</a></p>
+</section>
+{% endblock %}

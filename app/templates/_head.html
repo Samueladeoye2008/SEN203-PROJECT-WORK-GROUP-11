@@ -1,0 +1,22 @@
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='img/favicon.png') }}">
+<script>(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();</script>
+<!-- Tailwind Play CDN: fine for a class project. For heavy production use, compile with the Tailwind CLI. -->
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: {
+  50:'#e8f0fe',100:'#d2e3fc',500:'#4285f4',600:'#1a73e8',700:'#1557b0' } } } } };
+</script>
+<style type="text/tailwindcss">
+@layer components {
+  .field { @apply mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 dark:border-neutral-700 dark:bg-[#1e1e1e] dark:text-neutral-100; }
+  .lbl { @apply block text-sm font-medium text-neutral-700 dark:text-neutral-300; }
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-neutral-700 dark:bg-[#1e1e1e] dark:text-neutral-200 dark:hover:bg-neutral-800; }
+  .btn-primary { @apply border-transparent bg-brand-600 text-white hover:bg-brand-700 dark:border-transparent dark:bg-[#8ab4f8] dark:text-[#062e6f] dark:hover:bg-[#a8c7fa]; }
+  .btn-sm { @apply px-3 py-1 text-xs; }
+  .card { @apply rounded-3xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-[#1e1e1e]; }
+  .rail { @apply flex h-11 w-11 items-center justify-center rounded-2xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white; }
+  .rail-on { @apply bg-brand-100 text-brand-700 dark:bg-[#172554] dark:text-brand-100; }
+}
+</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">

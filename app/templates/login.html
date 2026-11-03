@@ -9,6 +9,7 @@
     <label class="lbl">Matric number<input class="field" name="matric_no" required autofocus></label>
     <label class="lbl">Password<input class="field" type="password" name="password" required></label>
     <button class="btn btn-primary w-full">Log in</button>
+    <p class="text-center text-sm"><a class="text-brand-600 hover:underline dark:text-[#8ab4f8]" href="{{ url_for('auth.forgot') }}">Forgot password?</a></p>
   </form>
   <p class="mt-4 text-sm text-slate-500">No account? <a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.register') }}">Register</a></p>
 </section>

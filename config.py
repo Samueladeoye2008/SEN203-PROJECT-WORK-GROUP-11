@@ -31,6 +31,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Set per survey result (student Q7 / lecturer Q5): who may create tasks.
     ANY_MEMBER_CAN_CREATE = True
+    APP_NAME = os.environ.get("APP_NAME", "GroupFlow")
     # Email via Google Apps Script web app (empty = email disabled).
     APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
     APPS_SCRIPT_SECRET = os.environ.get("APPS_SCRIPT_SECRET", "")

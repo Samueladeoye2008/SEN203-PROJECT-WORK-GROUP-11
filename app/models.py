@@ -25,6 +25,9 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow)
+    # Suspended users cannot log in. Super admin is set only by create_admin.py.
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_superadmin = db.Column(db.Boolean, nullable=False, default=False)
     memberships = db.relationship("Membership", back_populates="user",
                                   cascade="all, delete-orphan")
 
@@ -37,7 +40,8 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    user = db.session.get(User, int(user_id))
+    return user if user and user.is_active else None   # suspended = logged out
 
 
 class Group(db.Model):
@@ -113,3 +117,15 @@ class ActivityLog(db.Model):
     detail = db.Column(db.String(200), default="")
     created_at = db.Column(db.DateTime, default=utcnow)
     user = db.relationship("User")
+
+
+class Setting(db.Model):
+    """Admin-editable limits (key/value). See app/limits.py for defaults."""
+    key = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(50), nullable=False)
+
+
+class UsageCounter(db.Model):
+    """Per-day usage counters, e.g. 'email:2026-11-02', 'writes:<uid>:2026-11-02'."""
+    key = db.Column(db.String(80), primary_key=True)
+    count = db.Column(db.Integer, nullable=False, default=0)

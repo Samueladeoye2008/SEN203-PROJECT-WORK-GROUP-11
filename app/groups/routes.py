@@ -6,7 +6,8 @@ from flask_login import current_user, login_required
 from ..extensions import db
 from ..models import (ActivityLog, Group, Membership, ROLE_LEADER, ROLE_MEMBER,
                       STATUSES, Task)
-from ..utils import log_activity, membership_or_403
+from .. import limits
+from ..utils import log_activity, membership_or_403, view_membership_or_403
 
 bp = Blueprint("groups", __name__)
 
@@ -23,6 +24,13 @@ def create():
     name = request.form.get("name", "").strip()
     if not name or len(name) > 100:
         flash("Enter a group name (max 100 characters).", "error")
+        return redirect(url_for("groups.dashboard"))
+    if limits.over(limits.get_limit("max_groups_per_user"),
+                   Group.query.filter_by(created_by=current_user.id).count()):
+        flash("You have reached the maximum number of groups you can create.", "error")
+        return redirect(url_for("groups.dashboard"))
+    if limits.storage_full():
+        flash(limits.STORAGE_MSG, "error")
         return redirect(url_for("groups.dashboard"))
     group = Group(name=name, join_code=Group.new_code(), created_by=current_user.id)
     db.session.add(group)
@@ -45,6 +53,9 @@ def join():
     if Membership.query.filter_by(user_id=current_user.id, group_id=group.id).first():
         flash("You are already in that group.", "error")
         return redirect(url_for("groups.board", group_id=group.id))
+    if limits.over(limits.get_limit("max_members_per_group"), len(group.memberships)):
+        flash("That group is full.", "error")
+        return redirect(url_for("groups.dashboard"))
     db.session.add(Membership(user_id=current_user.id, group_id=group.id,
                               role=ROLE_MEMBER))
     log_activity(group.id, "member_joined", current_user.name)
@@ -55,7 +66,7 @@ def join():
 @bp.route("/groups/<int:group_id>")
 @login_required
 def board(group_id):
-    me = membership_or_403(group_id)
+    me = view_membership_or_403(group_id)
     group = db.get_or_404(Group, group_id)
     far = date.max
     tasks = sorted(group.tasks, key=lambda t: (t.deadline or far, t.id))
@@ -69,7 +80,7 @@ def board(group_id):
 @bp.route("/groups/<int:group_id>/activity")
 @login_required
 def activity(group_id):
-    membership_or_403(group_id)
+    view_membership_or_403(group_id)
     group = db.get_or_404(Group, group_id)
     logs = (ActivityLog.query.filter_by(group_id=group_id)
             .order_by(ActivityLog.id.desc()).limit(100).all())

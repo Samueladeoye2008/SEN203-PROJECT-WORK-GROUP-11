@@ -1,8 +1,12 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
+from .. import limits
 from ..extensions import db
 from ..models import User
+from ..notifications import notify_reset, notify_welcome
+from ..tokens import read_reset_token
+from ..mailer import config_problem
 
 bp = Blueprint("auth", __name__)
 
@@ -23,6 +27,12 @@ def register():
         email = form.get("email", "").strip().lower()
         pw, pw2 = form.get("password", ""), form.get("confirm", "")
         errors = []
+        if not limits.get_limit("registration_open"):
+            errors.append("Registration is currently closed.")
+        if limits.over(limits.get_limit("max_users"), User.query.count()):
+            errors.append("The system has reached its user limit.")
+        if limits.storage_full():
+            errors.append(limits.STORAGE_MSG)
         if not name:
             errors.append("Name is required.")
         if not matric:
@@ -46,6 +56,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         login_user(user)
+        notify_welcome(user)                 # first-time welcome email (never contains the password)
         return redirect(url_for("groups.dashboard"))
     return render_template("register.html", form=form)
 
@@ -58,6 +69,9 @@ def login():
         user = User.query.filter_by(
             matric_no=request.form.get("matric_no", "").strip()).first()
         if user and user.check_password(request.form.get("password", "")):
+            if not user.is_active:
+                flash("This account is suspended. Contact the administrator.", "error")
+                return render_template("login.html")
             login_user(user)
             return redirect(_safe_next(request.args.get("next"))
                             or url_for("groups.dashboard"))
@@ -70,3 +84,58 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
+
+@bp.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    if request.method == "POST":
+        cur, new, new2 = (request.form.get(k, "") for k in ("current", "new", "confirm"))
+        if not current_user.check_password(cur):
+            flash("Current password is wrong.", "error")
+        elif len(new) < 8:
+            flash("New password must be at least 8 characters.", "error")
+        elif new != new2:
+            flash("New passwords do not match.", "error")
+        else:
+            current_user.set_password(new)
+            db.session.commit()
+            flash("Password changed.", "message")
+            return redirect(url_for("auth.account"))
+    return render_template("account.html")
+
+
+@bp.route("/forgot", methods=["GET", "POST"])
+def forgot():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        if config_problem(current_app):
+            flash("Email is not set up on this system. Ask an administrator to reset your password.", "error")
+            return render_template("forgot.html")
+        user = User.query.filter_by(email=email).first() if email else None
+        # At most 3 reset emails per address per day. Same answer either way (no account guessing).
+        if user and user.is_active and limits.bump(f"reset:{email}:{limits.today()}") <= 3:
+            notify_reset(user)
+        flash("If that email is registered, a reset link is on its way. Check your spam folder too.", "message")
+        return redirect(url_for("auth.login"))
+    return render_template("forgot.html")
+
+
+@bp.route("/reset/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    user = read_reset_token(token)
+    if not user:
+        flash("That reset link is invalid or has expired. Request a new one.", "error")
+        return redirect(url_for("auth.forgot"))
+    if request.method == "POST":
+        new, new2 = request.form.get("new", ""), request.form.get("confirm", "")
+        if len(new) < 8:
+            flash("Password must be at least 8 characters.", "error")
+        elif new != new2:
+            flash("Passwords do not match.", "error")
+        else:
+            user.set_password(new)
+            db.session.commit()
+            flash("Password updated. You can log in now.", "message")
+            return redirect(url_for("auth.login"))
+    return render_template("reset.html", token=token)
