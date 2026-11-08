@@ -137,6 +137,7 @@ def test_falls_back_to_sqlite_when_main_db_unreachable():
         FALLBACK_DB_URI = "sqlite://"
     app = create_app(BadDb)
     assert app.config["DB_FALLBACK"] is True
+    assert app.config["DB_FALLBACK_REASON"]               # class name of the failure, no secrets
     assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite://"
     assert b"temporary backup" in app.test_client().get("/login").data
 

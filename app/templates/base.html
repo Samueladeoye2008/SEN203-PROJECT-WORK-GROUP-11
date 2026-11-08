@@ -53,7 +53,7 @@
   </header>
   <main class="min-h-[calc(100vh-3.5rem)] px-4 py-5 pb-24 md:rounded-tl-3xl md:px-6 md:pb-8 {{ 'bg-neutral-50 dark:bg-[#141414]' }}">
     {% if config.DB_FALLBACK %}
-    <div class="mb-4 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300" role="alert">Main database unreachable. Running on a temporary backup database: data may be lost.</div>
+    <div class="mb-4 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300" role="alert">Main database unreachable. Running on a temporary backup database: data may be lost.{% if current_user.is_superadmin and config.DB_FALLBACK_REASON %} <b>Admin note: {{ config.DB_FALLBACK_REASON }}. ModuleNotFoundError means the Postgres driver is missing, OperationalError usually means a wrong URL, wrong password or an unreachable host.</b>{% endif %}</div>
     {% endif %}
     {% with msgs = get_flashed_messages(with_categories=true) %}
       {% for cat, m in msgs %}

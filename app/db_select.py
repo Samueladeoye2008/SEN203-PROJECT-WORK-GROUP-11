@@ -7,13 +7,15 @@ def pick_database(app):
     if uri.startswith("sqlite"):
         return
     try:
-        engine = create_engine(uri, connect_args={"connect_timeout": 5})
+        # Free Neon databases sleep when idle, so allow a few seconds to wake up.
+        engine = create_engine(uri, connect_args={"connect_timeout": 8})
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         engine.dispose()
     except Exception as exc:                    # any failure -> backup DB
-        app.logger.warning("Main database unreachable (%s); using backup SQLite.",
-                           type(exc).__name__)
+        reason = type(exc).__name__             # class name only: never log the URL or password
+        app.logger.warning("Main database unreachable (%s); using backup SQLite.", reason)
         app.config["SQLALCHEMY_DATABASE_URI"] = app.config["FALLBACK_DB_URI"]
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
         app.config["DB_FALLBACK"] = True
+        app.config["DB_FALLBACK_REASON"] = reason

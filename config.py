@@ -27,6 +27,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _db
     FALLBACK_DB_URI = BACKUP_SQLITE            # used if the main DB is unreachable
     DB_FALLBACK = False                        # True when fallback is active
+    DB_FALLBACK_REASON = ""                    # exception class name, shown to admins only
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Set per survey result (student Q7 / lecturer Q5): who may create tasks.
