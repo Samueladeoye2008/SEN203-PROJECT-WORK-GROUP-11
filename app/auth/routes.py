@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy.exc import SQLAlchemyError
 
 from .. import limits
 from ..extensions import db
@@ -53,10 +54,23 @@ def register():
             return render_template("register.html", form=form)
         user = User(name=name, matric_no=matric, email=email)
         user.set_password(pw)
-        db.session.add(user)
-        db.session.commit()
-        login_user(user)
-        notify_welcome(user)                 # first-time welcome email (never contains the password)
+        try:
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Registration database error")
+            flash("We could not create your account because the database could not complete the request. Please try again.", "error")
+            return render_template("register.html", form=form), 500
+
+        # Email is deliberately after the successful transaction and is already
+        # implemented as a non-raising best-effort operation. Registration must
+        # never be rolled back because the optional email relay is unavailable.
+        try:
+            notify_welcome(user)
+        except Exception:
+            current_app.logger.exception("Welcome email failed after registration")
         return redirect(url_for("groups.dashboard"))
     return render_template("register.html", form=form)
 
@@ -66,15 +80,21 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("groups.dashboard"))
     if request.method == "POST":
-        user = User.query.filter_by(
-            matric_no=request.form.get("matric_no", "").strip()).first()
-        if user and user.check_password(request.form.get("password", "")):
-            if not user.is_active:
-                flash("This account is suspended. Contact the administrator.", "error")
-                return render_template("login.html")
-            login_user(user)
-            return redirect(_safe_next(request.args.get("next"))
-                            or url_for("groups.dashboard"))
+        try:
+            user = User.query.filter_by(
+                matric_no=request.form.get("matric_no", "").strip()).first()
+            if user and user.check_password(request.form.get("password", "")):
+                if not user.is_active:
+                    flash("This account is suspended. Contact the administrator.", "error")
+                    return render_template("login.html")
+                login_user(user)
+                return redirect(_safe_next(request.args.get("next"))
+                                or url_for("groups.dashboard"))
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Login database error")
+            flash("We could not sign you in because the database could not complete the request. Please try again.", "error")
+            return render_template("login.html"), 500
         flash("Wrong matric number or password.", "error")
     return render_template("login.html")
 

@@ -134,7 +134,7 @@ def test_activity_logged(client):
 def test_local_falls_back_to_sqlite_when_main_db_unreachable():
     class BadDb(TestConfig):
         DB_REQUIRED = False
-        SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://u:p@127.0.0.1:1/none"
+        SQLALCHEMY_DATABASE_URI = "postgresql://u:p@127.0.0.1:1/none"
         FALLBACK_DB_URI = "sqlite://"
     app = create_app(BadDb)
     assert app.config["DB_FALLBACK"] is True
@@ -146,7 +146,7 @@ def test_local_falls_back_to_sqlite_when_main_db_unreachable():
 def test_production_does_not_fall_back_to_sqlite():
     class BadDb(TestConfig):
         DB_REQUIRED = True
-        DATABASE_URL = "postgresql+psycopg2://u:p@127.0.0.1:1/none"
+        DATABASE_URL = "postgresql://u:p@127.0.0.1:1/none"
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
         FALLBACK_DB_URI = "sqlite://"
     try:
