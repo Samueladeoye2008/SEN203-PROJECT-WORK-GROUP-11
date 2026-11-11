@@ -34,7 +34,7 @@
     </nav>
     <div class="sidebar-bottom">
       <button type="button" id="theme-toggle" class="nav-item ghost">{{ icon('moon') }}<span>Appearance</span><span class="nav-hint">Dark</span></button>
-      <a href="{{ url_for('auth.account') }}" class="profile-mini"><span>{{ avatar(current_user, 'avatar-sm') }}</span><span class="profile-copy"><strong>{{ current_user.name }}</strong><small>{{ 'Super Admin' if current_user.is_superadmin else 'Student' }}</small></span>{{ icon('chevron-right','icon-sm') }}</a>
+      <a href="{{ url_for('auth.account') }}" class="profile-mini"><span>{{ avatar(current_user, 'avatar-sm') }}</span><span class="profile-copy"><strong>{{ current_user.name }}</strong><small>{% if current_user.is_superadmin %}Super Admin{% elif current_user.memberships|selectattr('role', 'equalto', 'leader')|list|length %}Team Leader{% else %}Member{% endif %}</small></span>{{ icon('chevron-right','icon-sm') }}</a>
       <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-item ghost danger">{{ icon('logout') }}<span>Sign out</span></button></form>
     </div>
   </aside>

@@ -6,7 +6,7 @@ from flask import abort
 from flask_login import current_user
 
 from .extensions import db
-from .models import ActivityLog, Membership
+from .models import ActivityLog, Membership, ROLE_LEADER
 
 
 def membership_or_403(group_id):
@@ -37,3 +37,11 @@ def view_membership_or_403(group_id):
     if current_user.is_superadmin:
         return SimpleNamespace(is_leader=False, read_only=True, user_id=current_user.id)
     abort(403)
+
+
+def leader_or_403(group_id):
+    """Require current user to be a leader of the group."""
+    m = membership_or_403(group_id)
+    if not m.is_leader:
+        abort(403)
+    return m

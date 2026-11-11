@@ -12,6 +12,7 @@ STATUSES = [("todo", "To do"), ("doing", "In progress"),
 STATUS_KEYS = [s[0] for s in STATUSES]
 PRIORITIES = ["low", "medium", "high"]
 ROLE_LEADER, ROLE_MEMBER = "leader", "member"
+ROLE_LABELS = {ROLE_LEADER: "Team Leader", ROLE_MEMBER: "Member"}
 
 
 def utcnow():

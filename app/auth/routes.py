@@ -81,8 +81,10 @@ def login():
         return redirect(url_for("groups.dashboard"))
     if request.method == "POST":
         try:
-            user = User.query.filter_by(
-                matric_no=request.form.get("matric_no", "").strip()).first()
+            identifier = request.form.get("matric_no", "").strip()
+            user = User.query.filter_by(matric_no=identifier).first()
+            if not user and "@" in identifier:
+                user = User.query.filter_by(email=identifier.lower()).first()
             if user and user.check_password(request.form.get("password", "")):
                 if not user.is_active:
                     flash("This account is suspended. Contact the administrator.", "error")
@@ -118,10 +120,16 @@ def account():
         elif new != new2:
             flash("New passwords do not match.", "error")
         else:
-            current_user.set_password(new)
-            db.session.commit()
-            flash("Password changed.", "message")
-            return redirect(url_for("auth.account"))
+            try:
+                current_user.set_password(new)
+                db.session.commit()
+            except SQLAlchemyError:
+                db.session.rollback()
+                current_app.logger.exception("Password change database error")
+                flash("We could not change your password. Please try again.", "error")
+            else:
+                flash("Password changed.", "message")
+                return redirect(url_for("auth.account"))
     return render_template("account.html")
 
 
@@ -154,8 +162,14 @@ def reset_password(token):
         elif new != new2:
             flash("Passwords do not match.", "error")
         else:
-            user.set_password(new)
-            db.session.commit()
-            flash("Password updated. You can log in now.", "message")
-            return redirect(url_for("auth.login"))
+            try:
+                user.set_password(new)
+                db.session.commit()
+            except SQLAlchemyError:
+                db.session.rollback()
+                current_app.logger.exception("Password reset database error")
+                flash("We could not update your password. Please request a new reset link.", "error")
+            else:
+                flash("Password updated. You can log in now.", "message")
+                return redirect(url_for("auth.login"))
     return render_template("reset.html", token=token)

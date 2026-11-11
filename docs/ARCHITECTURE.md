@@ -79,17 +79,28 @@ User and Group are many-to-many, resolved by MEMBERSHIP (carries the role). Uniq
 
 ## 4. Roles and permissions
 
-| Action | Leader | Member | Non-member |
-|---|---|---|---|
-| View board and activity log | Yes | Yes | No (403) |
-| Create task | Yes | Yes (config `ANY_MEMBER_CAN_CREATE`) | No |
-| Assign task to others | Yes | No (self only) | No |
-| Edit / move task | Any task | Own (assigned or created) | No |
-| Delete task | Yes | No | No |
+The system uses two levels of authorization:
 
-Set `ANY_MEMBER_CAN_CREATE` in `config.py` from the survey result.
+- **System level:** Super Admin controls system-wide users, groups, limits and email settings.
+- **Board level:** every membership is either **Team Leader** or **Member**. A user can have different roles on different boards.
 
-## 5. Use cases (for the UI/UX and Design leads)
+| Action | Super Admin | Team Leader | Member | Non-member |
+|---|---|---|---|---|
+| View board/activity | Read-only | Yes | Yes | No |
+| Create a board | Yes | Yes | Yes | No |
+| Join a board by code | Yes | Yes | Yes | No |
+| Create task | Read-only | Yes | Yes | No |
+| Assign task to another member | Read-only | Yes | No (self only) | No |
+| Edit/move own task | Read-only | Yes | Yes | No |
+| Delete task | Read-only | Yes | No | No |
+| Promote/demote board members | Read-only | Yes | No | No |
+| Remove board members | Read-only | Yes | No | No |
+| Manage users/system settings | Yes | No | No | No |
+
+A board must always have at least one Team Leader. Super Admins can be granted or removed only by another Super Admin; a Super Admin cannot remove their own access.
+
+## 5. Use cases
+(for the UI/UX and Design leads)
 Register, Log in, Create group, Join group by code, Add task, Assign task, Edit task, Move task (drag or arrows), Delete task (leader), View progress, View activity log, Log out.
 
 ## 6. Key routes
@@ -102,6 +113,8 @@ Register, Log in, Create group, Join group by code, Add task, Assign task, Edit 
 | POST | /groups/create, /groups/join | Group management |
 | GET | /groups/<id>, /groups/<id>/activity | Board, history |
 | POST | /groups/<id>/tasks | Create task |
+| POST | /groups/<id>/members/<user_id>/role | Change board role (leader only) |
+| POST | /groups/<id>/members/<user_id>/remove | Remove board member (leader only) |
 | GET/POST | /tasks/<id>/edit | Edit task |
 | POST (JSON) | /tasks/<id>/move | Change status |
 | POST | /tasks/<id>/delete | Delete task |

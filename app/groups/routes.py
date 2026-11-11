@@ -7,7 +7,7 @@ from ..extensions import db
 from ..models import (ActivityLog, Group, Membership, ROLE_LEADER, ROLE_MEMBER,
                       STATUSES, Task)
 from .. import limits
-from ..utils import log_activity, membership_or_403, view_membership_or_403
+from ..utils import log_activity, membership_or_403, view_membership_or_403, leader_or_403
 
 bp = Blueprint("groups", __name__)
 
@@ -85,3 +85,50 @@ def activity(group_id):
     logs = (ActivityLog.query.filter_by(group_id=group_id)
             .order_by(ActivityLog.id.desc()).limit(100).all())
     return render_template("activity.html", group=group, logs=logs)
+
+
+@bp.route("/groups/<int:group_id>/members/<int:user_id>/role", methods=["POST"])
+@login_required
+def change_role(group_id, user_id):
+    leader_or_403(group_id)
+    target = Membership.query.filter_by(user_id=user_id, group_id=group_id).first()
+    if not target:
+        flash("That user is not a member of this board.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    role = request.form.get("role", ROLE_MEMBER)
+    if role not in (ROLE_LEADER, ROLE_MEMBER):
+        flash("Invalid role.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    if target.user_id == current_user.id and role == ROLE_MEMBER:
+        leaders = Membership.query.filter_by(group_id=group_id, role=ROLE_LEADER).count()
+        if leaders <= 1:
+            flash("A board must always have at least one Team Leader. Promote another member first.", "error")
+            return redirect(url_for("groups.board", group_id=group_id))
+    if target.role != role:
+        old = target.role
+        target.role = role
+        log_activity(group_id, "role_changed", f"{target.user.name}: {old} -> {role}")
+        db.session.commit()
+        flash(f"{target.user.name} is now a {'Team Leader' if role == ROLE_LEADER else 'Member'}.", "message")
+    return redirect(url_for("groups.board", group_id=group_id))
+
+
+@bp.route("/groups/<int:group_id>/members/<int:user_id>/remove", methods=["POST"])
+@login_required
+def remove_member(group_id, user_id):
+    leader_or_403(group_id)
+    target = Membership.query.filter_by(user_id=user_id, group_id=group_id).first()
+    if not target:
+        flash("That user is not a member of this board.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    if target.user_id == current_user.id:
+        leaders = Membership.query.filter_by(group_id=group_id, role=ROLE_LEADER).count()
+        if leaders <= 1:
+            flash("You cannot leave as the only Team Leader. Promote another leader first.", "error")
+            return redirect(url_for("groups.board", group_id=group_id))
+    name = target.user.name
+    db.session.delete(target)
+    log_activity(group_id, "member_removed", name)
+    db.session.commit()
+    flash(f"{name} was removed from the board.", "message")
+    return redirect(url_for("groups.board", group_id=group_id))

@@ -13,6 +13,26 @@
 <div class="task-list">{% for t in tasks %}{% set days=(t.deadline-today).days if t.deadline else none %}{% set done=t.status=='done' %}<article class="task-card task" tabindex="0" draggable="{{ 'false' if me.read_only else 'true' }}" data-id="{{ t.id }}" data-assignee="{{ t.assigned_to or '' }}" data-search="{{ (t.title ~ ' ' ~ (t.description or '') ~ ' ' ~ (t.assignee.name if t.assignee else ''))|lower }}" data-title="{{ t.title|e }}" data-description="{{ (t.description or '')|e }}" data-status="{{ labels[key] }}" data-priority="{{ t.priority|capitalize }}" data-deadline="{{ t.deadline.strftime('%d %b %Y') if t.deadline else 'No deadline' }}" data-assignee-name="{{ t.assignee.name if t.assignee else 'Unassigned' }}">
 <span class="priority-line {{ bars[t.priority] }}"></span><div class="task-top"><button type="button" data-toggle-done class="task-check {{ 'done' if done else '' }}" aria-label="{{ 'Mark not done' if done else 'Mark done' }}">{{ icon('check','icon-sm') }}</button><h3 class="task-title {{ 'done' if done else '' }}">{{ t.title }}</h3></div>{% if t.description %}<p class="task-description">{{ t.description }}</p>{% endif %}<div class="task-meta">{% if t.deadline %}<span class="chip {{ 'overdue' if t.is_overdue else ('soon' if days is not none and days <= 2 and not done else '') }}">{{ icon('calendar','icon-sm') }}{{ 'Overdue · ' if t.is_overdue else '' }}{{ t.deadline.strftime('%d %b') }}</span>{% endif %}<span class="chip">{{ t.priority|capitalize }}</span></div><div class="task-footer"><span class="assignee">{% if t.assignee %}{{ avatar(t.assignee,'avatar-sm') }}{{ t.assignee.name.split()[0] }}{% else %}Unassigned{% endif %}</span><div class="task-actions">{% if not me.read_only %}<button type="button" class="mini-action" data-move="-1" title="Move left">{{ icon('left','icon-sm') }}</button><button type="button" class="mini-action" data-move="1" title="Move right">{{ icon('right','icon-sm') }}</button><a class="mini-action" href="{{ url_for('tasks.edit', task_id=t.id) }}" title="Edit">{{ icon('edit','icon-sm') }}</a>{% if me.is_leader %}<form method="post" action="{{ url_for('tasks.delete', task_id=t.id) }}" onsubmit="return confirm('Delete this task?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini-action danger" title="Delete">{{ icon('trash','icon-sm') }}</button></form>{% endif %}{% endif %}</div></div></article>{% else %}<div class="board-empty">No tasks in this stage</div>{% endfor %}</div></section>{% endfor %}
 </div>
+<section class="panel member-panel" style="margin-top:16px">
+  <div class="panel-head"><div><div class="panel-title">Board members</div><div class="panel-muted">{{ members|length }} people · Team Leaders can manage membership roles</div></div></div>
+  <div class="member-list">
+  {% for m in members %}
+    <div class="member-row">
+      <div class="member-main">{{ avatar(m.user,'avatar-sm') }}<div><strong>{{ m.user.name }}</strong><small>{{ m.user.email }}</small></div></div>
+      <div class="member-role"><span class="chip">{{ 'Team Leader' if m.role == 'leader' else 'Member' }}{% if m.user_id == current_user.id %} · You{% endif %}</span></div>
+      {% if me.is_leader and not me.read_only %}<div class="member-actions">
+        <form method="post" action="{{ url_for('groups.change_role', group_id=group.id, user_id=m.user_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="role" value="{{ 'member' if m.role == 'leader' else 'leader' }}">
+          <button class="button small">{{ 'Make Member' if m.role == 'leader' else 'Make Leader' }}</button>
+        </form>
+        {% if m.user_id != current_user.id %}<form method="post" action="{{ url_for('groups.remove_member', group_id=group.id, user_id=m.user_id) }}" onsubmit="return confirm('Remove this member from the board?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button small danger">Remove</button></form>{% endif %}
+      </div>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+</section>
+
 <div id="task-backdrop" class="modal-backdrop"></div><aside id="task-drawer" class="drawer" aria-label="Task details"><div class="drawer-head"><div><div class="eyebrow">Task details</div><h2 id="drawer-title" class="drawer-title">Select a task</h2></div><button id="drawer-close" class="icon-button">{{ icon('plus','icon-sm') }}</button></div><div class="drawer-body"><div class="detail-grid"><div class="detail-box"><span>Status</span><strong id="drawer-status">—</strong></div><div class="detail-box"><span>Priority</span><strong id="drawer-priority">—</strong></div><div class="detail-box"><span>Deadline</span><strong id="drawer-deadline">—</strong></div><div class="detail-box"><span>Assignee</span><strong id="drawer-assignee">—</strong></div></div><div class="drawer-section"><h4>Description</h4><p id="drawer-description">—</p></div><div class="drawer-section"><a id="drawer-edit" class="button primary small" href="#">Edit task</a></div></div></aside>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/board.js') }}"></script>{% endblock %}
