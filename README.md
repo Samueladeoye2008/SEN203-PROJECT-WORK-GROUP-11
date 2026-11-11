@@ -131,6 +131,7 @@ erDiagram
 ## Database selection
 
 Local development uses SQLite. Production/Vercel requires PostgreSQL through `DATABASE_URL`.
+The deployment uses the explicitly supported `postgresql+psycopg2://` SQLAlchemy dialect because `requirements.txt` installs `psycopg2-binary`. This avoids SQLAlchemy 2.1 selecting the separate `psycopg` (v3) package implicitly.
 The deployed app deliberately does **not** fall back to `/tmp/app.db`, because Vercel's temporary filesystem is not durable and can be replaced between function instances.
 
 ```mermaid

@@ -24,8 +24,15 @@ class Config:
     # keep the local SQLite default for development, but never silently switch a
     # deployed app to /tmp when PostgreSQL is missing or unreachable.
     _db = DATABASE_URL or LOCAL_SQLITE
-    if _db.startswith("postgres://"):          # SQLAlchemy needs postgresql://
+    # SQLAlchemy 2.1 changed the implicit PostgreSQL driver from psycopg2 to
+    # psycopg (v3). This project intentionally ships psycopg2-binary, so make
+    # the driver explicit. This prevents Vercel from trying to import the
+    # uninstalled ``psycopg`` package when DATABASE_URL is a normal
+    # postgresql:// URL.
+    if _db.startswith("postgres://"):
         _db = _db.replace("postgres://", "postgresql://", 1)
+    if _db.startswith("postgresql://"):
+        _db = _db.replace("postgresql://", "postgresql+psycopg2://", 1)
     SQLALCHEMY_DATABASE_URI = _db
     FALLBACK_DB_URI = BACKUP_SQLITE            # local/test fallback only
     DB_REQUIRED = IS_PRODUCTION
