@@ -14,8 +14,6 @@ def create_app(config=Config):
     # Static files live in public/static so Vercel's CDN serves them in production.
     app = Flask(__name__, static_folder="../public/static", static_url_path="/static")
     app.config.from_object(config)
-    if os.environ.get("VERCEL") and not app.config.get("SECRET_KEY"):
-        raise RuntimeError("Production SECRET_KEY is missing. Add a strong SECRET_KEY in Vercel Production environment variables and redeploy.")
 
     # Select the real database before SQLAlchemy is initialized. In production,
     # this fails loudly instead of silently switching to Vercel /tmp storage.

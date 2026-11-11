@@ -68,3 +68,66 @@ body{font-size:15px}
 
 /* RBAC/member management readability */
 .member-list{display:grid;gap:10px}.member-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}.member-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1}.member-main>div{min-width:0}.member-main strong,.member-main small{display:block}.member-main small{color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis}.member-role{white-space:nowrap}.member-actions{display:flex;gap:6px;flex-wrap:wrap}.button.danger{border-color:var(--danger);color:var(--danger)}@media(max-width:700px){.member-row{align-items:flex-start;flex-wrap:wrap}.member-role{order:2}.member-actions{width:100%;order:3}}
+
+/* Mobile-first usability pass: phones and small tablets */
+@media (max-width: 700px){
+  html,body{width:100%;overflow-x:hidden}
+  .mobile-topbar{padding:0 12px;gap:8px}
+  .mobile-topbar .icon-button{width:36px;height:36px}
+  .page-header{gap:12px;margin-bottom:18px}
+  .page-title{font-size:25px;line-height:1.15}
+  .page-subtitle{font-size:13px;line-height:1.5}
+  .header-actions{width:100%;display:grid;grid-template-columns:1fr;gap:8px}
+  .header-actions .button{width:100%}
+  .dashboard-grid{gap:10px}
+  .stat-card{padding:14px}
+  .stat-value{font-size:24px}
+  .panel-head{padding:14px}
+  .panel-body{padding:14px}
+  .progress-ring-row{align-items:flex-start;gap:12px}
+  .progress-circle{width:82px;height:82px;flex:0 0 auto}
+  .progress-circle::after{width:62px;height:62px}
+  .progress-circle span{font-size:16px}
+  .board-toolbar{width:100%;gap:10px}
+  .board-actions{display:grid;grid-template-columns:1fr;gap:8px;width:100%}
+  .board-actions .button{width:100%}
+  .kanban-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  .kanban{width:max-content;grid-template-columns:repeat(4,minmax(260px,82vw));gap:10px}
+  .kanban-column{min-height:260px}
+  .task-card{touch-action:manipulation}
+  .drawer{width:min(100vw,420px)}
+  .drawer-header{padding:16px}
+  .drawer-body{padding:16px}
+  .form-grid{grid-template-columns:1fr;gap:12px}
+  .form-actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .form-actions .button{width:100%}
+  .search-row{max-width:none;width:100%;display:grid;grid-template-columns:1fr;gap:8px}
+  .search-row .button{width:100%}
+  .table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .activity-table{min-width:620px}
+  .member-row{padding:12px;gap:9px}
+  .member-main{width:100%}
+  .member-role{width:100%;order:2}
+  .member-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;order:3}
+  .member-actions .button{width:100%;min-height:40px}
+  .admin-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:5px;-webkit-overflow-scrolling:touch}
+  .admin-tabs .button{white-space:nowrap;flex:0 0 auto}
+  .auth-page{min-height:calc(100vh - 58px);padding:18px 10px}
+  .auth-card{width:100%;border-radius:18px}
+  .auth-form{padding:26px 18px}
+  .auth-form input,.auth-form select,.auth-form textarea{min-height:44px}
+  .public-topbar{height:64px}
+  .public-links{gap:8px}
+  .button{min-height:40px}
+  input,select,textarea{font-size:16px!important}
+}
+@media (max-width: 420px){
+  .dashboard-grid{grid-template-columns:1fr}
+  .mini-stat-grid{grid-template-columns:1fr}
+  .admin-stat-grid{grid-template-columns:1fr}
+  .page-container{padding:16px 10px 30px}
+  .page-title{font-size:23px}
+  .stat-value{font-size:23px}
+  .member-actions{grid-template-columns:1fr}
+  .kanban{grid-template-columns:repeat(4,calc(100vw - 32px))}
+}

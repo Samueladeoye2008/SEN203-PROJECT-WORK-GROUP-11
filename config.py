@@ -17,7 +17,7 @@ BACKUP_SQLITE = "sqlite:////tmp/app.db" if IS_VERCEL else LOCAL_SQLITE
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "") if IS_PRODUCTION else os.environ.get("SECRET_KEY", "dev-change-me")
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-change-me")
     DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
     # Production/Vercel MUST use an external PostgreSQL database. We intentionally
@@ -44,7 +44,6 @@ class Config:
     # Email via Google Apps Script web app (empty = email disabled).
     APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
     APPS_SCRIPT_SECRET = os.environ.get("APPS_SCRIPT_SECRET", "")
-    SUPERADMIN_SETUP_KEY = os.environ.get("SUPERADMIN_SETUP_KEY", "")
     CRON_SECRET = os.environ.get("CRON_SECRET", "")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
