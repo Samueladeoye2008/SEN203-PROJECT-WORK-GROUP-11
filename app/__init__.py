@@ -1,5 +1,6 @@
 """Application factory."""
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from sqlalchemy import text
 from flask_login import current_user
 from config import Config
 from .db_select import pick_database
@@ -65,7 +66,15 @@ def create_app(config=Config):
         return render_template("landing.html")
 
     with app.app_context():
-        db.create_all()
+        # Multiple Vercel instances can cold-start at the same time. A PostgreSQL
+        # advisory transaction lock prevents two workers from racing through
+        # CREATE TABLE and producing duplicate composite-type errors.
+        if db.engine.dialect.name == "postgresql":
+            with db.engine.begin() as conn:
+                conn.execute(text("SELECT pg_advisory_xact_lock(hashtext('sen203_schema_init'))"))
+                db.metadata.create_all(bind=conn)
+        else:
+            db.create_all()
         from .schema import ensure_columns
         ensure_columns()
     return app
