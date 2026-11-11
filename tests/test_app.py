@@ -131,8 +131,9 @@ def test_activity_logged(client):
     assert b"member_joined" in r.data
 
 
-def test_falls_back_to_sqlite_when_main_db_unreachable():
+def test_local_falls_back_to_sqlite_when_main_db_unreachable():
     class BadDb(TestConfig):
+        DB_REQUIRED = False
         SQLALCHEMY_DATABASE_URI = "postgresql://u:p@127.0.0.1:1/none"
         FALLBACK_DB_URI = "sqlite://"
     app = create_app(BadDb)
@@ -140,6 +141,20 @@ def test_falls_back_to_sqlite_when_main_db_unreachable():
     assert app.config["DB_FALLBACK_REASON"]               # class name of the failure, no secrets
     assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite://"
     assert b"temporary backup" in app.test_client().get("/login").data
+
+
+def test_production_does_not_fall_back_to_sqlite():
+    class BadDb(TestConfig):
+        DB_REQUIRED = True
+        DATABASE_URL = "postgresql://u:p@127.0.0.1:1/none"
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        FALLBACK_DB_URI = "sqlite://"
+    try:
+        create_app(BadDb)
+    except RuntimeError as exc:
+        assert "PostgreSQL database is unreachable" in str(exc)
+    else:
+        raise AssertionError("Production database failure must not fall back to SQLite")
 
 
 def test_pages_render_with_data(client):

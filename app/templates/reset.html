@@ -1,13 +1,1 @@
-{% extends "base.html" %}
-{% block title %}Choose a new password{% endblock %}
-{% block content %}
-<section class="card mx-auto mt-10 max-w-md">
-  <h1 class="text-xl font-semibold">Choose a new password</h1>
-  <form method="post" class="mt-4 space-y-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="lbl">New password (8+ characters)<input class="field" type="password" name="new" minlength="8" required autofocus></label>
-    <label class="lbl">Confirm new password<input class="field" type="password" name="confirm" required></label>
-    <button class="btn btn-primary w-full">Save password</button>
-  </form>
-</section>
-{% endblock %}
+{% extends "base.html" %}{% block title %}Choose new password{% endblock %}{% block content %}<div class="auth-page"><section class="panel form-card" style="width:min(470px,100%)"><div class="eyebrow">Account recovery</div><h1 class="page-title" style="font-size:25px">Choose a new password</h1><p class="page-subtitle">Use at least 8 characters, then confirm it below.</p><form method="post" class="form-stack" style="margin-top:20px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-field"><label>New password</label><input class="field" type="password" name="new" minlength="8" required></div><div class="form-field"><label>Confirm password</label><input class="field" type="password" name="confirm" minlength="8" required></div><button class="button primary">Update password</button></form></section></div>{% endblock %}

@@ -7,7 +7,9 @@ from app.models import User
 app = create_app()
 with app.app_context():
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    print("Database:", db.engine.dialect.name, "|", uri.split("@")[-1] if "@" in uri else uri)
+    # Print only the dialect and safe host/database portion; never expose credentials.
+    safe_uri = uri.split("@", 1)[-1] if "@" in uri else uri
+    print("Database:", db.engine.dialect.name, "|", safe_uri)
     print("Fallback active:", app.config["DB_FALLBACK"])
     insp = inspect(db.engine)
     tables = sorted(insp.get_table_names())

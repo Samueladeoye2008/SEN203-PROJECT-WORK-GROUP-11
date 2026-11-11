@@ -128,16 +128,34 @@ erDiagram
     }
 ```
 
-## Database selection (automatic)
+## Database selection
+
+Local development uses SQLite. Production/Vercel requires PostgreSQL through `DATABASE_URL`.
+The deployed app deliberately does **not** fall back to `/tmp/app.db`, because Vercel's temporary filesystem is not durable and can be replaced between function instances.
 
 ```mermaid
 flowchart TD
-    A["App starts"] --> B{"DATABASE_URL set?"}
+    A["App starts"] --> B{"Production / Vercel?"}
     B -->|No| C["SQLite file app.db"]
-    B -->|Yes| D{"Neon reachable within 5 s?"}
-    D -->|Yes| E["Use Neon PostgreSQL"]
-    D -->|No| F["SQLite backup + red warning banner"]
+    B -->|Yes| D{"DATABASE_URL set?"}
+    D -->|No| E["Clear configuration error"]
+    D -->|Yes| F{"PostgreSQL reachable?"}
+    F -->|Yes| G["Use hosted PostgreSQL"]
+    F -->|No| H["Clear database connection error"]
 ```
+
+### Vercel + PostgreSQL deployment
+
+1. Create a hosted PostgreSQL database (for example Neon).
+2. Copy its PostgreSQL connection string. Keep the password private.
+3. In Vercel open **Project → Settings → Environment Variables**.
+4. Add `DATABASE_URL` with the complete PostgreSQL connection string.
+5. Add `SECRET_KEY` with a long random value.
+6. Apply both variables to **Production** (and Preview/Development if you use those environments).
+7. Save the variables and **redeploy** the project. Vercel only applies changed environment variables to a new deployment.
+8. Open the deployed app and verify that the database warning is gone.
+
+If `DATABASE_URL` is missing or PostgreSQL cannot be reached, the application now stops with a clear deployment/database error instead of using temporary SQLite. This prevents users from accidentally writing data into a database that can disappear.
 
 ## Deployment pipeline
 

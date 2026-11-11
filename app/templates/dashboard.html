@@ -1,45 +1,35 @@
 {% extends "base.html" %}
-{% block title %}My boards{% endblock %}
+{% from "_macros.html" import avatar, icon %}
+{% block title %}Dashboard{% endblock %}
+{% set ns = namespace(tasks=0, done=0, doing=0, review=0, overdue=0, upcoming=[]) %}
+{% for m in memberships %}{% for t in m.group.tasks %}{% set ns.tasks = ns.tasks + 1 %}{% if t.status == 'done' %}{% set ns.done = ns.done + 1 %}{% elif t.status == 'doing' %}{% set ns.doing = ns.doing + 1 %}{% elif t.status == 'review' %}{% set ns.review = ns.review + 1 %}{% endif %}{% if t.is_overdue %}{% set ns.overdue = ns.overdue + 1 %}{% endif %}{% if t.deadline and not t.is_overdue and t.status != 'done' %}{% set ns.upcoming = ns.upcoming + [t] %}{% endif %}{% endfor %}{% endfor %}
+{% set completion = ((ns.done * 100 / ns.tasks)|round|int) if ns.tasks else 0 %}
 {% block content %}
-<div class="flex flex-wrap items-center justify-between gap-3">
-  <h1 class="text-2xl font-semibold">Your boards</h1>
-  <div class="flex gap-2">
-    <button type="button" data-toggle="#new-group" class="btn btn-primary">+ New board</button>
-    <button type="button" data-toggle="#join-group" class="btn">Join with code</button>
-  </div>
+<div class="page-header">
+  <div><div class="eyebrow">Overview</div><h1 class="page-title">Good to see you, {{ current_user.name.split()[0] }} 👋</h1><p class="page-subtitle">Stay on top of your group work, deadlines and project progress.</p></div>
+  <div class="header-actions"><button class="button" data-toggle="#join-group">{{ icon('users','icon-sm') }} Join a board</button><button class="button primary" data-toggle="#new-group">{{ icon('plus','icon-sm') }} New board</button></div>
 </div>
-
-<form id="new-group" class="card mt-4 hidden max-w-md space-y-3" method="post" action="{{ url_for('groups.create') }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <label class="lbl">Group name<input class="field" name="name" maxlength="100" required></label>
-  <button class="btn btn-primary">Create board</button>
-</form>
-<form id="join-group" class="card mt-4 hidden max-w-md space-y-3" method="post" action="{{ url_for('groups.join') }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <label class="lbl">Join code<input class="field uppercase" name="code" maxlength="12" required></label>
-  <button class="btn btn-primary">Join board</button>
-</form>
-
-<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-  {% for m in memberships %}
-  {% set g = m.group %}
-  {% set late = g.tasks|selectattr('is_overdue')|list|length %}
-  <a href="{{ url_for('groups.board', group_id=g.id) }}" data-search="{{ g.name|lower }}" class="card block transition hover:-translate-y-0.5 hover:shadow-lg">
-    <div class="flex items-start justify-between gap-2">
-      <h2 class="text-lg font-semibold">{{ g.name }}</h2>
-      <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-[#172554] dark:text-brand-100">{{ m.role|capitalize }}</span>
-    </div>
-    <p class="mt-1 text-sm text-neutral-500">{{ g.tasks|length }} tasks · {{ g.memberships|length }} members</p>
-    <div class="mt-4 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"><div class="h-full rounded-full bg-brand-600 dark:bg-[#8ab4f8]" style="width: {{ g.progress }}%"></div></div>
-    <div class="mt-2 flex justify-between text-xs text-neutral-500">
-      <span>{{ g.progress }}% complete</span>
-      {% if late %}<span class="font-medium text-red-600 dark:text-red-400">{{ late }} overdue</span>{% endif %}
-    </div>
-  </a>
-  {% else %}
-  <div class="card col-span-full border-dashed text-center text-neutral-500">
-    No boards yet. Create one or join with a code from your group leader.
-  </div>
-  {% endfor %}
+<div class="dashboard-grid">
+  <div class="stat-card"><div class="stat-top"><span class="stat-label">Total tasks</span><span class="stat-icon">{{ icon('board','icon-sm') }}</span></div><div class="stat-value">{{ ns.tasks }}</div><div class="stat-note">Across all your boards</div></div>
+  <div class="stat-card"><div class="stat-top"><span class="stat-label">In progress</span><span class="stat-icon">{{ icon('chart','icon-sm') }}</span></div><div class="stat-value">{{ ns.doing }}</div><div class="stat-note">Currently being worked on</div></div>
+  <div class="stat-card"><div class="stat-top"><span class="stat-label">Completed</span><span class="stat-icon">{{ icon('check','icon-sm') }}</span></div><div class="stat-value">{{ ns.done }}</div><div class="stat-note">{{ completion }}% overall completion</div></div>
+  <div class="stat-card"><div class="stat-top"><span class="stat-label">Needs attention</span><span class="stat-icon" style="background:var(--danger-soft);color:var(--danger)">{{ icon('warning','icon-sm') }}</span></div><div class="stat-value">{{ ns.overdue }}</div><div class="stat-note">Overdue tasks</div></div>
 </div>
+<div class="dashboard-main">
+  <section class="panel"><div class="panel-head"><div><div class="panel-title">Your boards</div><div class="panel-muted">Projects you belong to</div></div><a class="button small" href="#boards">View all</a></div><div class="panel-body">
+    <div id="new-group" class="quick-form hide"><form method="post" action="{{ url_for('groups.create') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label">Board name</label><input class="field" name="name" maxlength="100" placeholder="e.g. SEN203 Group 11" required><div class="form-actions"><button class="button primary small">Create board</button><button type="button" class="button small" data-toggle="#new-group">Cancel</button></div></form></div>
+    <div id="join-group" class="quick-form hide"><form method="post" action="{{ url_for('groups.join') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label">Join code</label><input class="field" name="code" maxlength="12" placeholder="Enter your group's code" required><div class="form-actions"><button class="button primary small">Join board</button><button type="button" class="button small" data-toggle="#join-group">Cancel</button></div></form></div>
+    <div id="boards" class="board-list">
+      {% for m in memberships %}{% set g=m.group %}{% set late=g.tasks|selectattr('is_overdue')|list|length %}
+      <a href="{{ url_for('groups.board', group_id=g.id) }}" class="board-row" data-search="{{ g.name|lower }}">
+        <span class="board-logo">{{ icon('board','icon-sm') }}</span><span class="board-info"><strong>{{ g.name }}</strong><small>{{ g.tasks|length }} tasks · {{ g.memberships|length }} members</small></span><span class="board-progress"><span><i style="width:{{ g.progress }}%"></i></span><small>{{ g.progress }}%</small></span>{% if late %}<span class="chip overdue">{{ late }} overdue</span>{% endif %}<span class="row-arrow">{{ icon('chevron-right','icon-sm') }}</span>
+      </a>
+      {% else %}<div class="empty"><div class="empty-icon">{{ icon('folder') }}</div><strong>No boards yet</strong><p>Create a board or join one using a code from your group leader.</p></div>{% endfor %}
+    </div>
+  </div></section>
+  <aside class="panel"><div class="panel-head"><div><div class="panel-title">Overall progress</div><div class="panel-muted">Across your current workload</div></div></div><div class="panel-body"><div class="progress-ring-row"><div class="progress-circle" style="--progress:{{ completion }}"><span>{{ completion }}%</span></div><div class="progress-copy"><h3>{{ ns.done }} of {{ ns.tasks }} tasks done</h3><p>Keep moving tasks forward and your project will stay on schedule.</p></div></div><div class="mini-stat-grid"><div class="mini-stat"><strong>{{ ns.doing }}</strong><span>In progress</span></div><div class="mini-stat"><strong>{{ ns.review }}</strong><span>In review</span></div><div class="mini-stat"><strong>{{ ns.overdue }}</strong><span>Overdue</span></div></div></div></aside>
+</div>
+<div class="panel" style="margin-top:16px"><div class="panel-head"><div><div class="panel-title">Upcoming work</div><div class="panel-muted">Tasks with approaching deadlines</div></div></div><div class="panel-body"><div class="upcoming-list">
+{% for t in ns.upcoming|sort(attribute='deadline') %}{% if loop.index <= 6 %}<a class="upcoming-item" href="{{ url_for('tasks.edit', task_id=t.id) }}"><span class="task-dot"></span><span class="upcoming-copy"><strong>{{ t.title }}</strong><small>{{ t.group.name }} · Due {{ t.deadline.strftime('%d %b %Y') }}{% if t.assignee %} · {{ t.assignee.name.split()[0] }}{% endif %}</small></span><span class="chip {{ 'soon' if (t.deadline - today).days <= 2 else '' }}">{{ (t.deadline - today).days }}d</span></a>{% endif %}{% else %}<div class="empty"><div class="empty-icon">{{ icon('calendar') }}</div><strong>No upcoming deadlines</strong><p>You're clear for now. Nice work.</p></div>{% endfor %}
+</div></div></div>
 {% endblock %}

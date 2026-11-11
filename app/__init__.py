@@ -14,7 +14,9 @@ def create_app(config=Config):
     app = Flask(__name__, static_folder="../public/static", static_url_path="/static")
     app.config.from_object(config)
 
-    pick_database(app)          # Neon if reachable, else SQLite backup
+    # Select the real database before SQLAlchemy is initialized. In production,
+    # this fails loudly instead of silently switching to Vercel /tmp storage.
+    pick_database(app)
     if os.environ.get("VERCEL"):         # trust Vercel's proxy headers so email links use https
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)

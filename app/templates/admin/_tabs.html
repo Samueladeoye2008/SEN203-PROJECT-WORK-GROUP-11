@@ -1,7 +1,1 @@
-{% set ep = request.endpoint %}
-<div class="mb-5 flex flex-wrap items-center gap-2">
-  <h1 class="mr-3 text-2xl font-semibold">Administration</h1>
-  {% for name, label in [('admin.dashboard','Overview'),('admin.users','Users'),('admin.groups','Groups'),('admin.settings','Limits and email')] %}
-  <a href="{{ url_for(name) }}" class="btn btn-sm {{ 'btn-primary' if ep == name }}">{{ label }}</a>
-  {% endfor %}
-</div>
+{% set ep=request.endpoint %}<div class="page-header"><div><div class="eyebrow">System control</div><h1 class="page-title">Super Admin</h1><p class="page-subtitle">Monitor users, groups, usage and system settings.</p></div></div><div class="admin-tabs">{% for name,label in [('admin.dashboard','Overview'),('admin.users','Users'),('admin.groups','Groups'),('admin.settings','Settings')] %}<a href="{{ url_for(name) }}" class="button small {{ 'active' if ep == name else '' }}">{{ label }}</a>{% endfor %}</div>

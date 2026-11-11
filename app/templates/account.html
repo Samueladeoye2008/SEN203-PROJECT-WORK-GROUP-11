@@ -1,16 +1,1 @@
-{% extends "base.html" %}
-{% block title %}Account{% endblock %}
-{% block content %}
-<section class="card mx-auto max-w-md">
-  <h1 class="text-xl font-semibold">{{ current_user.name }}</h1>
-  <p class="text-sm text-neutral-500">{{ current_user.matric_no }} · {{ current_user.email }}{% if current_user.is_superadmin %} · Administrator{% endif %}</p>
-  <h2 class="mt-5 font-semibold">Change password</h2>
-  <form method="post" class="mt-3 space-y-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="lbl">Current password<input class="field" type="password" name="current" required></label>
-    <label class="lbl">New password (8+ characters)<input class="field" type="password" name="new" minlength="8" required></label>
-    <label class="lbl">Confirm new password<input class="field" type="password" name="confirm" required></label>
-    <button class="btn btn-primary">Save password</button>
-  </form>
-</section>
-{% endblock %}
+{% extends "base.html" %}{% from "_macros.html" import avatar, icon %}{% block title %}Account{% endblock %}{% block content %}<div class="page-header"><div><div class="eyebrow">Personal settings</div><h1 class="page-title">Account</h1><p class="page-subtitle">Manage your profile and sign-in security.</p></div></div><div class="account-grid"><section class="panel profile-card"><div class="profile-hero">{{ avatar(current_user,'avatar-lg') }}<div><h2 class="profile-name">{{ current_user.name }}</h2><div class="profile-meta">{{ current_user.matric_no }}</div><div class="profile-meta">{{ current_user.email }}</div></div></div><div class="mini-stat-grid" style="margin-top:24px"><div class="mini-stat"><strong>{{ current_user.memberships|length }}</strong><span>Boards</span></div><div class="mini-stat"><strong>{{ 'Admin' if current_user.is_superadmin else 'Student' }}</strong><span>Role</span></div></div></section><section class="panel form-card"><h2 class="section-title">Change password</h2><p class="page-subtitle" style="margin-bottom:18px">Choose a strong password with at least 8 characters.</p><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-stack"><div class="form-field"><label>Current password</label><input class="field" type="password" name="current" required></div><div class="form-field"><label>New password</label><input class="field" type="password" name="new" minlength="8" required></div><div class="form-field"><label>Confirm new password</label><input class="field" type="password" name="confirm" minlength="8" required></div></div><div class="form-actions"><button class="button primary">Update password</button></div></form></section></div>{% endblock %}

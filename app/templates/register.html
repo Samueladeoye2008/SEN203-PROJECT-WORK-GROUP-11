@@ -1,20 +1,2 @@
-{% extends "base.html" %}
-{% block title %}Register{% endblock %}
-{% block content %}
-<section class="card mx-auto mt-6 max-w-md">
-  <h1 class="text-xl font-semibold">Create your account</h1>
-  <form method="post" class="mt-4 space-y-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="lbl">Full name<input class="field" name="name" value="{{ form.get('name','') }}" required></label>
-    <label class="lbl">Matric number<input class="field" name="matric_no" value="{{ form.get('matric_no','') }}" required></label>
-    <label class="lbl">Email<input class="field" type="email" name="email" value="{{ form.get('email','') }}" required></label>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <label class="lbl">Password<input class="field" type="password" name="password" minlength="8" required></label>
-      <label class="lbl">Confirm<input class="field" type="password" name="confirm" required></label>
-    </div>
-    <p class="text-xs text-slate-500">Use at least 8 characters.</p>
-    <button class="btn btn-primary w-full">Register</button>
-  </form>
-  <p class="mt-4 text-sm text-slate-500">Already registered? <a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.login') }}">Log in</a></p>
-</section>
-{% endblock %}
+{% extends "base.html" %}{% from "_macros.html" import icon %}{% block title %}Create account{% endblock %}
+{% block content %}<div class="auth-page"><section class="auth-card"><div class="auth-visual"><div class="auth-kicker">Get started</div><h1>Your team, one clear workspace.</h1><p>Create your student account and join the project board used by your group to plan, assign and track software engineering work.</p><div class="auth-features"><div class="auth-feature"><i>{{ icon('check','icon-sm') }}</i>Track your assigned tasks</div><div class="auth-feature"><i>{{ icon('calendar','icon-sm') }}</i>Keep deadlines visible</div><div class="auth-feature"><i>{{ icon('clock','icon-sm') }}</i>Build a clear activity history</div></div></div><div class="auth-form"><div class="eyebrow">New workspace member</div><h2>Create your account</h2><p>Enter your details. You will be signed in automatically after registration.</p><form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-field"><label>Full name</label><input class="field" name="name" value="{{ form.get('name','') }}" required placeholder="Your full name"></div><div class="form-grid"><div class="form-field"><label>Matric number</label><input class="field" name="matric_no" value="{{ form.get('matric_no','') }}" required></div><div class="form-field"><label>Email</label><input class="field" type="email" name="email" value="{{ form.get('email','') }}" required></div></div><div class="form-grid"><div class="form-field"><label>Password</label><input class="field" type="password" name="password" minlength="8" required></div><div class="form-field"><label>Confirm password</label><input class="field" type="password" name="confirm" minlength="8" required></div></div><button class="button primary">Create account</button></form><div class="auth-footer">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></div></div></section></div>{% endblock %}

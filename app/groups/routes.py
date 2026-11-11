@@ -15,7 +15,7 @@ bp = Blueprint("groups", __name__)
 @bp.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", memberships=current_user.memberships)
+    return render_template("dashboard.html", memberships=current_user.memberships, today=date.today())
 
 
 @bp.route("/groups/create", methods=["POST"])

@@ -1,16 +1,2 @@
-{% extends "base.html" %}
-{% block title %}Log in{% endblock %}
-{% block content %}
-<section class="card mx-auto mt-10 max-w-md">
-  <h1 class="text-xl font-semibold">Welcome back</h1>
-  <p class="mt-1 text-sm text-slate-500">Log in to see your group's board.</p>
-  <form method="post" class="mt-4 space-y-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="lbl">Matric number<input class="field" name="matric_no" required autofocus></label>
-    <label class="lbl">Password<input class="field" type="password" name="password" required></label>
-    <button class="btn btn-primary w-full">Log in</button>
-    <p class="text-center text-sm"><a class="text-brand-600 hover:underline dark:text-[#8ab4f8]" href="{{ url_for('auth.forgot') }}">Forgot password?</a></p>
-  </form>
-  <p class="mt-4 text-sm text-slate-500">No account? <a class="font-medium text-brand-600 hover:underline" href="{{ url_for('auth.register') }}">Register</a></p>
-</section>
-{% endblock %}
+{% extends "base.html" %}{% from "_macros.html" import icon %}{% block title %}Sign in{% endblock %}
+{% block content %}<div class="auth-page"><section class="auth-card"><div class="auth-visual"><div class="auth-kicker">SEN 203 · Group Workspace</div><h1>Turn group work into visible progress.</h1><p>Organise tasks, assign responsibilities and keep your software engineering project moving without losing track of who is doing what.</p><div class="auth-features"><div class="auth-feature"><i>{{ icon('board','icon-sm') }}</i>One shared Kanban board</div><div class="auth-feature"><i>{{ icon('users','icon-sm') }}</i>Clear ownership and collaboration</div><div class="auth-feature"><i>{{ icon('chart','icon-sm') }}</i>Progress you can see at a glance</div></div></div><div class="auth-form"><div class="eyebrow">Welcome back</div><h2>Sign in to your workspace</h2><p>Use your matric number and password to continue.</p><form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-field"><label>Matric number</label><input class="field" name="matric_no" required autofocus placeholder="e.g. 2025/12345"></div><div class="form-field"><label>Password</label><input class="field" type="password" name="password" required placeholder="Enter your password"></div><button class="button primary">Sign in</button></form><div class="auth-footer"><a href="{{ url_for('auth.forgot') }}">Forgot your password?</a><br><span>Don't have an account?</span> <a href="{{ url_for('auth.register') }}">Create one</a></div></div></section></div>{% endblock %}

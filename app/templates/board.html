@@ -1,98 +1,18 @@
 {% extends "base.html" %}
 {% from "_macros.html" import avatar, icon %}
 {% block title %}{{ group.name }}{% endblock %}
+{% set total = group.tasks|length %}{% set late = group.tasks|selectattr('is_overdue')|list|length %}{% set can_add = (me.is_leader or config.ANY_MEMBER_CAN_CREATE) and not me.read_only %}
 {% block content %}
-{% set total = group.tasks|length %}
-{% set late = group.tasks|selectattr('is_overdue')|list|length %}
-{% set can_add = (me.is_leader or config.ANY_MEMBER_CAN_CREATE) and not me.read_only %}
-{% set dots = {'todo':'bg-neutral-400','doing':'bg-sky-500','review':'bg-amber-500','done':'bg-emerald-500'} %}
-{% set bars = {'high':'bg-red-500','medium':'bg-amber-500','low':'bg-sky-500'} %}
-
-{% if me.read_only %}<div class="mb-3 rounded-2xl border border-brand-500/40 bg-brand-50 px-4 py-2 text-sm text-brand-700 dark:bg-[#172554] dark:text-brand-100">Read-only administrator view.</div>{% endif %}
-<div class="flex flex-wrap items-center justify-between gap-3">
-  <div class="min-w-0">
-    <h1 class="truncate text-2xl font-semibold">{{ group.name }}</h1>
-    <p class="mt-1 text-sm text-neutral-500">{{ total }} tasks · {{ group.progress }}% complete{% if late %} · <span class="font-medium text-red-600 dark:text-red-400">{{ late }} overdue</span>{% endif %}</p>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <div class="flex -space-x-2">
-      {% for m in members[:5] %}{{ avatar(m.user, 'h-8 w-8 text-xs ring-2 ring-neutral-50 dark:ring-[#141414]') }}{% endfor %}
-      {% if members|length > 5 %}<span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-xs ring-2 ring-neutral-50 dark:bg-neutral-800 dark:ring-[#141414]">+{{ members|length - 5 }}</span>{% endif %}
-    </div>
-    <button type="button" data-copy="{{ group.join_code }}" class="btn btn-sm" title="Copy join code">Code {{ group.join_code }}</button>
-    <button type="button" id="mine-toggle" data-me="{{ current_user.id }}" aria-pressed="false" class="btn btn-sm aria-pressed:border-brand-600 aria-pressed:bg-brand-50 aria-pressed:text-brand-700 dark:aria-pressed:bg-[#172554] dark:aria-pressed:text-brand-100">My tasks</button>
-  </div>
+{% if me.read_only %}<div class="system-alert success">{{ icon('shield') }}<span>Read-only administrator view. You can inspect the board without changing project data.</span></div>{% endif %}
+<div class="board-toolbar"><div class="board-title-wrap"><div class="eyebrow">Project board</div><h1 class="board-title">{{ group.name }}</h1><div class="board-meta"><span>{{ total }} tasks</span><span>·</span><span>{{ group.progress }}% complete</span>{% if late %}<span>·</span><span style="color:var(--danger)">{{ late }} overdue</span>{% endif %}</div></div><div class="board-actions"><div class="avatar-stack">{% for m in members[:5] %}{{ avatar(m.user,'avatar-sm') }}{% endfor %}{% if members|length > 5 %}<span class="avatar avatar-sm">+{{ members|length-5 }}</span>{% endif %}</div><button type="button" data-copy="{{ group.join_code }}" class="button small join-code">{{ icon('users','icon-sm') }} {{ group.join_code }}</button><button type="button" id="mine-toggle" data-me="{{ current_user.id }}" class="button small">My tasks</button>{% if can_add %}<button type="button" class="button primary small" data-toggle="#quick-new">{{ icon('plus','icon-sm') }} Add task</button>{% endif %}</div></div>
+<div class="board-progress"><span style="width:{{ group.progress }}%"></span></div>
+{% if can_add %}<div id="quick-new" class="quick-form hide" style="margin-bottom:16px"><form method="post" action="{{ url_for('tasks.create', group_id=group.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="todo"><div class="form-grid"><div><label class="form-label">Task title</label><input class="field" name="title" maxlength="120" placeholder="What needs to be done?" required></div><div><label class="form-label">Deadline</label><input class="field" type="date" name="deadline"></div><div><label class="form-label">Assign to</label><select class="field" name="assigned_to"><option value="">Unassigned</option>{% for m in members %}{% if me.is_leader or m.user_id == current_user.id %}<option value="{{ m.user_id }}">{{ m.user.name }}</option>{% endif %}{% endfor %}</select></div><div><label class="form-label">Priority</label><select class="field" name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div></div><div style="margin-top:10px"><label class="form-label">Description</label><textarea class="field" name="description" maxlength="500" rows="2" placeholder="Add a short description (optional)"></textarea></div><div class="form-actions"><button class="button primary small">Create task</button><button type="button" class="button small" data-toggle="#quick-new">Cancel</button></div></form></div>{% endif %}
+<div class="kanban">
+{% set dots={'todo':'status-todo','doing':'status-doing','review':'status-review','done':'status-done'} %}{% set labels={'todo':'To do','doing':'In progress','review':'In review','done':'Done'} %}{% set bars={'high':'priority-high','medium':'priority-medium','low':'priority-low'} %}
+{% for key,label,tasks in columns %}<section class="kanban-column col" data-status="{{ key }}"><div class="column-head"><div class="column-title"><span class="status-dot {{ dots[key] }}"></span>{{ label }}</div><span class="column-count">{{ tasks|length }}</span></div>{% if can_add %}<button type="button" class="add-task-link" data-toggle="#qa-{{ key }}">{{ icon('plus','icon-sm') }} Add a task</button><form id="qa-{{ key }}" class="quick-form hide" method="post" action="{{ url_for('tasks.create', group_id=group.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ key }}"><input class="field" name="title" maxlength="120" placeholder="Task title" required><input class="field" name="description" maxlength="500" placeholder="Description" style="margin-top:7px"><div class="form-grid" style="margin-top:7px"><select class="field" name="assigned_to"><option value="">Unassigned</option>{% for m in members %}{% if me.is_leader or m.user_id == current_user.id %}<option value="{{ m.user_id }}">{{ m.user.name }}</option>{% endif %}{% endfor %}</select><input class="field" type="date" name="deadline"></div><select class="field" name="priority" style="margin-top:7px"><option value="low">Low priority</option><option value="medium" selected>Medium priority</option><option value="high">High priority</option></select><div class="form-actions"><button class="button primary small">Add</button><button type="button" class="button small" data-toggle="#qa-{{ key }}">Cancel</button></div></form>{% endif %}
+<div class="task-list">{% for t in tasks %}{% set days=(t.deadline-today).days if t.deadline else none %}{% set done=t.status=='done' %}<article class="task-card task" tabindex="0" draggable="{{ 'false' if me.read_only else 'true' }}" data-id="{{ t.id }}" data-assignee="{{ t.assigned_to or '' }}" data-search="{{ (t.title ~ ' ' ~ (t.description or '') ~ ' ' ~ (t.assignee.name if t.assignee else ''))|lower }}" data-title="{{ t.title|e }}" data-description="{{ (t.description or '')|e }}" data-status="{{ labels[key] }}" data-priority="{{ t.priority|capitalize }}" data-deadline="{{ t.deadline.strftime('%d %b %Y') if t.deadline else 'No deadline' }}" data-assignee-name="{{ t.assignee.name if t.assignee else 'Unassigned' }}">
+<span class="priority-line {{ bars[t.priority] }}"></span><div class="task-top"><button type="button" data-toggle-done class="task-check {{ 'done' if done else '' }}" aria-label="{{ 'Mark not done' if done else 'Mark done' }}">{{ icon('check','icon-sm') }}</button><h3 class="task-title {{ 'done' if done else '' }}">{{ t.title }}</h3></div>{% if t.description %}<p class="task-description">{{ t.description }}</p>{% endif %}<div class="task-meta">{% if t.deadline %}<span class="chip {{ 'overdue' if t.is_overdue else ('soon' if days is not none and days <= 2 and not done else '') }}">{{ icon('calendar','icon-sm') }}{{ 'Overdue · ' if t.is_overdue else '' }}{{ t.deadline.strftime('%d %b') }}</span>{% endif %}<span class="chip">{{ t.priority|capitalize }}</span></div><div class="task-footer"><span class="assignee">{% if t.assignee %}{{ avatar(t.assignee,'avatar-sm') }}{{ t.assignee.name.split()[0] }}{% else %}Unassigned{% endif %}</span><div class="task-actions">{% if not me.read_only %}<button type="button" class="mini-action" data-move="-1" title="Move left">{{ icon('left','icon-sm') }}</button><button type="button" class="mini-action" data-move="1" title="Move right">{{ icon('right','icon-sm') }}</button><a class="mini-action" href="{{ url_for('tasks.edit', task_id=t.id) }}" title="Edit">{{ icon('edit','icon-sm') }}</a>{% if me.is_leader %}<form method="post" action="{{ url_for('tasks.delete', task_id=t.id) }}" onsubmit="return confirm('Delete this task?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini-action danger" title="Delete">{{ icon('trash','icon-sm') }}</button></form>{% endif %}{% endif %}</div></div></article>{% else %}<div class="board-empty">No tasks in this stage</div>{% endfor %}</div></section>{% endfor %}
 </div>
-<div class="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800" role="progressbar" aria-valuenow="{{ group.progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Group progress">
-  <div class="h-full rounded-full bg-brand-600 transition-all dark:bg-[#8ab4f8]" style="width: {{ group.progress }}%"></div>
-</div>
-
-<div class="mt-5 flex snap-x gap-4 overflow-x-auto pb-6">
-  {% for key, label, tasks in columns %}
-  <section class="col flex min-w-[280px] flex-1 snap-start flex-col rounded-3xl bg-white p-3 shadow-sm ring-1 ring-neutral-200 dark:bg-[#1e1e1e] dark:ring-neutral-800" data-status="{{ key }}">
-    <h2 class="flex items-center justify-between px-2 py-1 text-sm font-semibold">
-      <span class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full {{ dots[key] }}"></span>{{ label }}</span>
-      <span class="text-xs font-normal text-neutral-500">{{ tasks|length }}</span>
-    </h2>
-
-    {% if can_add %}
-    <button type="button" data-toggle="#qa-{{ key }}" class="mt-1 flex items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-medium text-brand-600 hover:bg-neutral-100 dark:text-[#8ab4f8] dark:hover:bg-neutral-800">{{ icon('plus','h-4 w-4') }} Add a task</button>
-    <form id="qa-{{ key }}" class="mt-1 hidden space-y-2 rounded-2xl bg-neutral-50 p-3 dark:bg-neutral-900" method="post" action="{{ url_for('tasks.create', group_id=group.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="status" value="{{ key }}">
-      <input class="field !mt-0" name="title" maxlength="120" placeholder="Task title" aria-label="Task title" required>
-      <input class="field" name="description" maxlength="500" placeholder="Notes (optional)" aria-label="Notes">
-      <div class="grid grid-cols-2 gap-2">
-        <select class="field !mt-0" name="assigned_to" aria-label="Assign to">
-          <option value="">Unassigned</option>
-          {% for m in members %}{% if me.is_leader or m.user_id == current_user.id %}<option value="{{ m.user_id }}">{{ m.user.name }}</option>{% endif %}{% endfor %}
-        </select>
-        <input class="field !mt-0" type="date" name="deadline" aria-label="Deadline">
-      </div>
-      <select class="field" name="priority" aria-label="Priority"><option value="low">Low priority</option><option value="medium" selected>Medium priority</option><option value="high">High priority</option></select>
-      <div class="flex gap-2"><button class="btn btn-primary btn-sm">Add</button><button type="button" data-toggle="#qa-{{ key }}" class="btn btn-sm">Cancel</button></div>
-    </form>
-    {% endif %}
-
-    <div class="mt-2 min-h-[4rem] space-y-2">
-    {% for t in tasks %}
-      {% set days = (t.deadline - today).days if t.deadline else none %}
-      {% set done = t.status == 'done' %}
-      <article class="task group relative cursor-grab overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-3 pl-4 dark:border-neutral-800 dark:bg-[#262626]" draggable="{{ 'false' if me.read_only else 'true' }}" data-id="{{ t.id }}" data-assignee="{{ t.assigned_to or '' }}" data-search="{{ (t.title ~ ' ' ~ (t.description or '') ~ ' ' ~ (t.assignee.name if t.assignee else ''))|lower }}">
-        <span class="absolute inset-y-0 left-0 w-1 {{ bars[t.priority] }}" title="{{ t.priority|capitalize }} priority"></span>
-        <div class="flex items-start gap-2.5">
-          <button type="button" data-toggle-done {{ 'disabled' if me.read_only }} aria-label="{{ 'Mark not done' if done else 'Mark done' }}" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {{ 'border-emerald-500 bg-emerald-500 text-white' if done else 'border-neutral-400 text-transparent hover:border-emerald-500 hover:text-emerald-500' }}">{{ icon('check','h-3 w-3') }}</button>
-          <div class="min-w-0 flex-1">
-            <h3 class="break-words text-sm font-medium {{ 'text-neutral-400 line-through' if done }}">{{ t.title }}</h3>
-            {% if t.description %}<p class="mt-0.5 break-words text-xs text-neutral-500">{{ t.description }}</p>{% endif %}
-            <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-              {% if t.deadline %}
-              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium {{ 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' if t.is_overdue else ('bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' if days is not none and days <= 2 and not done else 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200') }}">{{ icon('calendar','h-3 w-3') }}{{ 'Overdue · ' if t.is_overdue else '' }}{{ t.deadline.strftime('%d %b') }}</span>
-              {% endif %}
-              {% if t.assignee %}<span class="inline-flex items-center gap-1 text-neutral-600 dark:text-neutral-300">{{ avatar(t.assignee, 'h-5 w-5 text-[9px]') }}{{ t.assignee.name.split()[0] }}</span>{% else %}<span class="text-neutral-400">Unassigned</span>{% endif %}
-            </div>
-          </div>
-        </div>
-        {% if not me.read_only %}
-        <div class="mt-2 flex items-center gap-1 md:opacity-0 md:transition md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-          <button type="button" class="rail !h-7 !w-7 !rounded-lg" data-move="-1" aria-label="Move left" title="Move left">{{ icon('left','h-4 w-4') }}</button>
-          <button type="button" class="rail !h-7 !w-7 !rounded-lg" data-move="1" aria-label="Move right" title="Move right">{{ icon('right','h-4 w-4') }}</button>
-          <a class="rail !h-7 !w-7 !rounded-lg" href="{{ url_for('tasks.edit', task_id=t.id) }}" aria-label="Edit task" title="Edit">{{ icon('edit','h-4 w-4') }}</a>
-          {% if me.is_leader %}
-          <form class="inline" method="post" action="{{ url_for('tasks.delete', task_id=t.id) }}" onsubmit="return confirm('Delete this task?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="rail !h-7 !w-7 !rounded-lg text-red-500" aria-label="Delete task" title="Delete">{{ icon('trash','h-4 w-4') }}</button>
-          </form>
-          {% endif %}
-        </div>
-        {% endif %}
-      </article>
-    {% else %}
-      <p class="px-2 py-6 text-center text-xs text-neutral-400">Nothing here yet</p>
-    {% endfor %}
-    </div>
-  </section>
-  {% endfor %}
-</div>
+<div id="task-backdrop" class="modal-backdrop"></div><aside id="task-drawer" class="drawer" aria-label="Task details"><div class="drawer-head"><div><div class="eyebrow">Task details</div><h2 id="drawer-title" class="drawer-title">Select a task</h2></div><button id="drawer-close" class="icon-button">{{ icon('plus','icon-sm') }}</button></div><div class="drawer-body"><div class="detail-grid"><div class="detail-box"><span>Status</span><strong id="drawer-status">—</strong></div><div class="detail-box"><span>Priority</span><strong id="drawer-priority">—</strong></div><div class="detail-box"><span>Deadline</span><strong id="drawer-deadline">—</strong></div><div class="detail-box"><span>Assignee</span><strong id="drawer-assignee">—</strong></div></div><div class="drawer-section"><h4>Description</h4><p id="drawer-description">—</p></div><div class="drawer-section"><a id="drawer-edit" class="button primary small" href="#">Edit task</a></div></div></aside>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/board.js') }}"></script>{% endblock %}
