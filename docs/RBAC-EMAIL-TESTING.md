@@ -77,3 +77,23 @@ Check:
 7. Vercel has the variables in the correct Production environment.
 8. Redeploy after changing Vercel variables.
 9. Check the Super Admin Settings test-email message and Vercel Runtime Logs if necessary.
+
+
+## Hosted Super Admin setup (Vercel)
+
+1. In Vercel open **Project → Settings → Environment Variables**.
+2. Add `SECRET_KEY` for **Production** with a long random value.
+3. Add `SUPERADMIN_SETUP_KEY` for **Production** with a different long random value. Keep it private.
+4. If email is required, add `APPS_SCRIPT_URL` and `APPS_SCRIPT_SECRET` for Production.
+5. Redeploy. Vercel requires a redeploy for environment-variable changes to take effect.
+6. Open `https://YOUR-DOMAIN/admin/setup`.
+7. Enter the `SUPERADMIN_SETUP_KEY`, then the administrator name, Admin ID, email and a password of at least 10 characters.
+8. After creation, `/admin/setup` automatically redirects to login because the first Super Admin already exists.
+9. Sign in at `/login` using the Admin ID or email and password.
+10. Open `/admin`.
+
+The setup key is never stored in the database and the setup route cannot create a second Super Admin once one exists.
+
+### Production test order
+
+Super Admin setup → Super Admin login/session → create Team Leader board → register Member accounts → join board → test leader/member permissions → task CRUD and Kanban moves → email test from `/admin/settings` → password reset → logout/login → refresh and revisit pages → verify PostgreSQL persistence → mobile/responsive test.

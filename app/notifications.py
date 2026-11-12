@@ -56,6 +56,80 @@ def notify_assigned(task):
           ("Open the board", _board_link(task.group_id)))
 
 
+
+def notify_task_created(task):
+    """Tell every current group member that a new task was created."""
+    due = task.deadline.strftime("%d %b %Y") if task.deadline else "No deadline"
+    assigned = task.assignee.name if task.assignee else "Unassigned"
+    sent = 0
+    members = Membership.query.filter_by(group_id=task.group_id).all()
+    for m in members:
+        if not m.user or not m.user.email:
+            continue
+        if _send(
+            m.user.email,
+            f"New task created: {task.title}",
+            "A new task was created",
+            [
+                f"Hi {m.user.name.split()[0]}, a new task was created in {task.group.name}.",
+                f"Task: {task.title}",
+                f"Description: {task.description or 'No description provided.'}",
+                f"Priority: {task.priority.capitalize()}",
+                f"Deadline: {due}",
+                f"Assigned to: {assigned}",
+                f"Created by: {task.creator.name if task.creator else current_user.name}",
+            ],
+            ("Open the board", _board_link(task.group_id)),
+        ):
+            sent += 1
+    return sent
+
+
+def notify_group_joined(user, group):
+    """Tell the new member and existing members that someone joined a group."""
+    sent = 0
+    _send(
+        user.email,
+        f"You joined {group.name}",
+        "You joined a project group",
+        [
+            f"Hi {user.name.split()[0]}, you have successfully joined {group.name}.",
+            f"Group join code: {group.join_code}",
+            "You can now access the board and work on tasks available to you.",
+        ],
+        ("Open the board", _board_link(group.id)),
+    )
+    for m in Membership.query.filter_by(group_id=group.id).all():
+        if not m.user or m.user_id == user.id or not m.user.email:
+            continue
+        if _send(
+            m.user.email,
+            f"New member joined {group.name}",
+            "A new member joined your group",
+            [
+                f"Hi {m.user.name.split()[0]}, {user.name} has joined {group.name}.",
+                "They can now access the project board according to their role.",
+            ],
+            ("Open the board", _board_link(group.id)),
+        ):
+            sent += 1
+    return sent
+
+
+def notify_group_invite(email, group, inviter):
+    """Send a join-code invitation to an email address."""
+    return _send(
+        email,
+        f"You are invited to {group.name}",
+        "You are invited to a StudentBoard group",
+        [
+            f"{inviter.name} invited you to join {group.name}.",
+            f"Join code: {group.join_code}",
+            "Create an account or log in to StudentBoard, then use this code from the dashboard to join the group.",
+        ],
+        ("Open StudentBoard", url_for("auth.login", _external=True)),
+    )
+
 def notify_review(task):
     """Tell the group leader(s) a task is waiting for review."""
     leaders = (Membership.query.filter_by(group_id=task.group_id, role=ROLE_LEADER).all())

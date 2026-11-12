@@ -5,9 +5,10 @@ from flask_login import current_user, login_required
 
 from ..extensions import db
 from ..models import (ActivityLog, Group, Membership, ROLE_LEADER, ROLE_MEMBER,
-                      STATUSES, Task)
+                      STATUSES, Task, User)
 from .. import limits
 from ..utils import log_activity, membership_or_403, view_membership_or_403, leader_or_403
+from ..notifications import notify_group_joined, notify_group_invite
 
 bp = Blueprint("groups", __name__)
 
@@ -60,7 +61,28 @@ def join():
                               role=ROLE_MEMBER))
     log_activity(group.id, "member_joined", current_user.name)
     db.session.commit()
+    notify_group_joined(current_user, group)
     return redirect(url_for("groups.board", group_id=group.id))
+
+
+@bp.route("/groups/<int:group_id>/invite", methods=["POST"])
+@login_required
+def invite(group_id):
+    leader_or_403(group_id)
+    group = db.get_or_404(Group, group_id)
+    email = request.form.get("email", "").strip().lower()
+    if not email or "@" not in email:
+        flash("Enter a valid email address.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    member = User.query.filter_by(email=email).first()
+    if member and Membership.query.filter_by(user_id=member.id, group_id=group.id).first():
+        flash("That user is already a member of this group.", "error")
+        return redirect(url_for("groups.board", group_id=group_id))
+    if notify_group_invite(email, group, current_user):
+        flash(f"Invitation sent to {email}.", "message")
+    else:
+        flash("The invitation could not be sent. Check the email service settings.", "error")
+    return redirect(url_for("groups.board", group_id=group_id))
 
 
 @bp.route("/groups/<int:group_id>")

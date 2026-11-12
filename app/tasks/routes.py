@@ -5,7 +5,7 @@ from flask_login import current_user, login_required
 from ..extensions import db
 from ..models import Group, Membership, PRIORITIES, STATUS_KEYS, Task
 from .. import limits
-from ..notifications import notify_assigned, notify_review
+from ..notifications import notify_assigned, notify_review, notify_task_created
 from ..utils import log_activity, membership_or_403, parse_date
 
 bp = Blueprint("tasks", __name__)
@@ -74,6 +74,7 @@ def create(group_id):
         db.session.flush()
         log_activity(group_id, "task_created", task.title, task.id)
         db.session.commit()
+        notify_task_created(task)
         notify_assigned(task)
     return redirect(url_for("groups.board", group_id=group_id))
 

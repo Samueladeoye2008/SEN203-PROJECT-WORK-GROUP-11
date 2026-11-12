@@ -6,6 +6,7 @@ from flask import (Blueprint, abort, current_app, flash, redirect,
                    render_template, request, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 
 from .. import limits
 from ..extensions import db
@@ -41,6 +42,54 @@ def admin_required(view):
 def _meter(label, used, cap, unit=""):
     pct = min(100, round(100 * used / cap)) if cap and used is not None else 0
     return dict(label=label, used=used, cap=cap, unit=unit, pct=pct)
+
+
+
+
+@bp.route("/setup", methods=["GET", "POST"])
+def setup():
+    """One-time hosted Super Admin bootstrap protected by a Vercel secret.
+
+    The route is unavailable once any Super Admin exists, so it cannot be used
+    to create additional administrators. The setup key must be stored in the
+    server environment, never in source control.
+    """
+    if User.query.filter_by(is_superadmin=True).first():
+        return redirect(url_for("auth.login"))
+    setup_key = current_app.config.get("SUPERADMIN_SETUP_KEY", "")
+    if not setup_key:
+        return render_template("admin/setup.html", problem="Super Admin setup is not enabled. Add SUPERADMIN_SETUP_KEY to the Production environment variables, then redeploy."), 503
+    if request.method == "POST":
+        if not secrets.compare_digest(request.form.get("setup_key", ""), setup_key):
+            flash("Invalid setup key.", "error")
+            return render_template("admin/setup.html") , 403
+        name = request.form.get("name", "").strip()
+        matric = request.form.get("matric_no", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
+        if not name or not matric or "@" not in email:
+            flash("Name, Admin ID and a valid email are required.", "error")
+            return render_template("admin/setup.html")
+        if len(password) < 10 or password != confirm:
+            flash("Passwords must match and be at least 10 characters.", "error")
+            return render_template("admin/setup.html")
+        if User.query.filter((User.matric_no == matric) | (User.email == email)).first():
+            flash("That Admin ID or email is already registered. Log in and use the existing account instead.", "error")
+            return render_template("admin/setup.html")
+        try:
+            user = User(name=name, matric_no=matric, email=email, is_active=True, is_superadmin=True)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Super Admin bootstrap failed")
+            flash("The database could not create the Super Admin. Check the Vercel Runtime Logs.", "error")
+            return render_template("admin/setup.html"), 500
+        flash("Super Admin created. You can now sign in.", "message")
+        return redirect(url_for("auth.login"))
+    return render_template("admin/setup.html")
 
 
 @bp.route("/")
